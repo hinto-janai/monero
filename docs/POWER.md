@@ -1,0 +1,126 @@
+# PoWER
+Proof-of-Work-Enabled Relay (PoWER) is a protocol to mitigate denial-of-service (DoS) attacks against Monero nodes caused by spam transactions with a large number of inputs.
+
+This document contains instructions on how to follow the protocol.
+
+- [Background](#background)
+- [Definitions and notes](#definitions-and-notes)
+- [Calculating PoWER challenges/solutions](#calculating-power-challenges-solutions)
+	- [Challenge](#challenge)
+		- [RPC](#rpc)
+		- [ZMQ](#zmq)
+		- [P2P](#p2p)
+	- [Solution](#solution)
+		- [Equi-X](#equi-x)
+		- [Difficulty](#difficulty)
+
+## Background
+Currently, verification of FCMP++ transactions with many inputs (e.g. 128-input transactions) can take several seconds on high-end hardware, while creation of invalid transactions is almost instantaneous. An attacker can exploit this asymmetry by spamming nodes with invalid transactions.
+
+PoWER adds a computational cost by requiring Proof-of-Work (PoW) to be performed to enable relaying of high-input transactions.
+
+## Definitions and notes
+
+| Parameter                      | Value | Description |
+|--------------------------------|-------|-------------|
+| `POWER_INPUT_THRESHOLD`        | 8     | PoWER is required for transactions with input counts greater than this. Transaction with input counts less than or equal to this value can skip PoWER.
+| `POWER_HEIGHT_WINDOW`          | 2     | TODO
+| `POWER_TARGET_DIFFICULTY`      | 200   | Fixed difficulty
+| `POWER_PERSONALIZATION_STRING` | "Monero PoWER" | TODO
+
+- Concatenation of bytes is denoted by `||`.
+- All operations converting between integers and bytes are in little endian encoding.
+
+## Calculating PoWER challenges/solutions
+
+PoWER uses [Equi-X](https://github.com/tevador/equix) as the PoW algorithm.
+
+Equi-X is a CPU-friendly [client-puzzle](https://en.wikipedia.org/wiki/Client_Puzzle_Protocol) that takes in a ["challenge" (bytes)](https://github.com/tevador/equix/blob/c0b0d2bd210b870b3077f487a3705dfa7578208f/include/equix.h#L121) and outputs a [16-byte "solution"](https://github.com/tevador/equix/blob/c0b0d2bd210b870b3077f487a3705dfa7578208f/include/equix.h#L28-L30).
+
+### Challenge
+
+Challenges are constructed differently depending on the interface. The below sections explain each interface.
+
+#### RPC
+
+For RPC:
+
+```
+challenge = (POWER_PERSONALIZATION_STRING || tx_prefix_hash || recent_block_hash || nonce)
+```
+
+where:
+
+- `POWER_PERSONALIZATION_STRING` is the string "Monero PoWER" as bytes.
+- `tx_prefix_hash` is the transaction prefix hash of the transaction being relayed.
+- `recent_block_hash` is a hash of a block within the last `POWER_HEIGHT_WINDOW` blocks.
+- `nonce` is a 32-bit unsigned integer.
+
+RPC endpoints that relay transactions contain fields where this data must be passed alongside the transaction.
+
+Note that these fields are not needed when any of the following are true:
+- The transaction has less than or equal to `POWER_INPUT_THRESHOLD` inputs.
+- The transaction orignates from a local/trusted source (unrestricted RPC, localhost, etc)
+
+#### ZMQ
+
+TODO
+
+#### P2P
+
+For P2P:
+
+```
+challenge = (POWER_PERSONALIZATION_STRING || power_challenge_nonce || nonce)
+```
+
+where:
+
+- `POWER_PERSONALIZATION_STRING` is the string "Monero PoWER" as bytes.
+- `power_challenge_nonce` is a 128-bit unsigned integer generated for each connection.
+- `nonce` is a 32-bit unsigned integer.
+
+`power_difficulty` and `power_challenge_nonce` is provided by nodes in the initial P2P handshake message.
+
+`nonce` should be adjusted until a valid Equi-X `solution` is produced that passes the difficulty formula with `power_difficulty`, then a `NOTIFY_POWER_SOLUTION` message should be sent containing the `solution` and `nonce`. This will enable high input transaction relay for that connection.
+
+## Solution
+
+A PoWER solution has 2 requirements:
+
+1. It must be a valid Equi-X solution.
+2. It must pass a target difficulty.
+
+The `nonce` in challenges should be adjusted until both 1 and 2 are satisfied.
+
+### Equi-X
+
+For 1, create an Equi-X `solution` for the `challenge` data created previously.
+
+Note that `equix_solve` does not always create a valid solution. The `challenge` for
+all interfaces contain a `nonce` field that should be adjusted until `equix_solve`
+produces a valid `equix_solution`.
+
+### Difficulty
+
+For 2, a difficulty scalar must be created with:
+
+```
+scalar = to_le_bytes(blake2b_32(POWER_PERSONALIZATION_STRING || challenge || solution))
+```
+
+- `to_le_bytes` converts a 4-byte array into a 32-bit unsigned integer in little endian order.
+- `blake2b_32` is a `blake2b` hash set to a 4-byte output.
+- `POWER_PERSONALIZATION_STRING` is the string "Monero PoWER".
+- `challenge` are the full challenge bytes.
+- `solution` are the Equi-X solution bytes.
+
+`scalar` must now pass the following difficulty formula:
+
+```
+scalar * difficulty <= MAX_UINT32
+```
+
+- `difficulty` is a currently a fixed integer, `POWER_TARGET_DIFFICULTY`.
+
+In the Monero codebase, this is the `create_power_difficulty_scalar` and `check_power_difficulty` functions.

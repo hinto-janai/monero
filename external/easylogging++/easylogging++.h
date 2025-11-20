@@ -3275,13 +3275,35 @@ class Writer : base::NoCopy {
     processDispatch();
   }
 
-  Writer& operator<<(const std::string &log) {
+  template <typename T>
+  inline typename std::enable_if<std::is_integral<T>::value, Writer&>::type
+  operator<<(T log) {
 #if ELPP_LOGGING_ENABLED
   if (m_proceed) {
     m_messageBuilder << log;
   }
 #endif  // ELPP_LOGGING_ENABLED
   return *this;
+  }
+
+  template <typename T>
+  inline typename std::enable_if<!std::is_integral<T>::value, Writer&>::type
+  operator<<(const T& log) {
+#if ELPP_LOGGING_ENABLED
+    if (m_proceed) {
+      m_messageBuilder << log;
+    }
+#endif  // ELPP_LOGGING_ENABLED
+    return *this;
+  }
+
+  inline Writer& operator<<(std::ostream& (*log)(std::ostream&)) {
+#if ELPP_LOGGING_ENABLED
+    if (m_proceed) {
+      m_messageBuilder << log;
+    }
+#endif  // ELPP_LOGGING_ENABLED
+    return *this;
   }
 
   inline operator bool() {
@@ -3600,9 +3622,8 @@ class DefaultPerformanceTrackingCallback : public PerformanceTrackingCallback {
         ss << ELPP_LITERAL("]");
       }
     }
-    const std::string str = ss.str();
     el::base::Writer(m_data->performanceTracker()->level(), m_data->file(), m_data->line(), m_data->func()).construct(1,
-        m_data->loggerId().c_str()) << str;
+        m_data->loggerId().c_str()) << ss.str();
   }
  private:
   const PerformanceTrackingData* m_data;
