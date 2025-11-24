@@ -106,8 +106,8 @@ namespace tools
     };
 
     struct power_challenge_p2p {
-      crypto::hash tx_prefix_hash;
-      crypto::hash recent_block_hash;
+      uint64_t power_challenge_nonce;
+      uint64_t power_challenge_nonce_top64;
       uint32_t nonce;
     };
 

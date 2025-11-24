@@ -46,6 +46,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/cpp_int/import_export.hpp>
 #include <boost/multiprecision/integer.hpp>
+#include <cstdlib>
 #include <equix.h>
 
 //standard headers
@@ -161,15 +162,14 @@ namespace tools
       const crypto::hash recent_block_hash,
       const uint32_t nonce
     ) noexcept {
-      std::array<std::uint8_t, CHALLENGE_SIZE_RPC> out;
+      std::array<std::uint8_t, CHALLENGE_SIZE_RPC> out {};
 
       memcpy(out.data(), PERSONALIZATION_STRING.data(), PERSONALIZATION_STRING.size());
-      memcpy(out.data() + 12, static_cast<const void*>(&tx_prefix_hash), 32);
-      memcpy(out.data() + 44, static_cast<const void*>(&recent_block_hash), 32);
+      memcpy(out.data() + 12, reinterpret_cast<const void*>(&tx_prefix_hash), 32);
+      memcpy(out.data() + 44, reinterpret_cast<const void*>(&recent_block_hash), 32);
 
-      uint8_t nonce_le[4];
-      memcpy_swap32le(&nonce_le, &nonce, sizeof(nonce_le));
-      memcpy(out.data() + 76, &nonce_le, sizeof(nonce_le));
+      const uint32_t n = swap32le(nonce);
+      memcpy(out.data() + 76, &n, sizeof(n));
 
       return out;
     }
@@ -179,11 +179,11 @@ namespace tools
       const uint64_t power_challenge_nonce_top64,
       const uint32_t nonce
     ) noexcept {
-      std::array<std::uint8_t, CHALLENGE_SIZE_P2P> out;
+      std::array<std::uint8_t, CHALLENGE_SIZE_P2P> out {};
 
       memcpy(out.data(), PERSONALIZATION_STRING.data(), PERSONALIZATION_STRING.size());
 
-      uint128_t nonce_128 =
+      const uint128_t nonce_128 =
         (uint128_t(power_challenge_nonce_top64) << 64) | power_challenge_nonce;
 
       std::array<std::uint8_t, 16> bytes_128;
@@ -191,9 +191,8 @@ namespace tools
 
       memcpy(out.data() + 12, bytes_128.data(), bytes_128.size());
 
-      uint8_t nonce_le[4];
-      memcpy_swap32le(&nonce_le, &nonce, sizeof(nonce_le));
-      memcpy(out.data() + 28, &nonce_le, sizeof(nonce_le));
+      const uint32_t n = swap32le(nonce);
+      memcpy(out.data() + 28, &n, sizeof(n));
 
       return out;
     }
@@ -203,42 +202,36 @@ namespace tools
       const crypto::hash& recent_block_hash,
       const uint32_t difficulty
     ) {
-      std::array<uint8_t, 64> challenge_prefix;
-      memcpy(challenge_prefix.data(), static_cast<const void*>(&tx_prefix_hash), 32);
-      memcpy(challenge_prefix.data() + 32, static_cast<const void*>(&recent_block_hash), 32);
-
-      std::vector<uint8_t> challenge;
-      challenge.reserve(challenge_prefix.size() + sizeof(uint32_t));
-
       equix_ctx* ctx = equix_alloc(EQUIX_CTX_SOLVE);
 
       if (ctx == nullptr) {
-        // TODO: throw
+        throw std::runtime_error("equix_alloc returned nullptr");
       }
 
+      std::array<std::uint8_t, CHALLENGE_SIZE_RPC> challenge =
+        create_challenge_rpc(tx_prefix_hash, recent_block_hash, 0);
+
+      equix_solution solutions[EQUIX_MAX_SOLS];
+      std::array<uint16_t, 8> solution;
+
       for (uint32_t nonce = 0;; ++nonce) {
-        challenge.assign(challenge_prefix.begin(), challenge_prefix.end());
+        const uint32_t n = swap32le(nonce);
+        memcpy(challenge.data() + 76, &n, sizeof(n));
 
-        uint8_t nonce_bytes[4];
-        memcpy_swap32le(&nonce_bytes, &nonce, sizeof(nonce_bytes));
-        challenge.insert(challenge.end(), nonce_bytes, nonce_bytes + sizeof(nonce_bytes));
-
-        equix_solution solutions;
-        int solution_count = equix_solve(ctx, challenge.data(), challenge.size(), &solutions);
+        const int solution_count = equix_solve(ctx, challenge.data(), challenge.size(), solutions);
 
         if (solution_count <= 0)
         {
           continue;
         }
 
-        for (size_t i = 0; i < solution_count; ++i) {
-          std::array<uint16_t, 8> solution;
-          memcpy(solution.data(), solutions.idx, solution.size());
-          uint32_t scalar = create_difficulty_scalar(challenge.data(), CHALLENGE_SIZE_RPC, solution);
+        for (int i = 0; i < solution_count; ++i) {
+          memcpy(solution.data(), solutions[i].idx, solution.size());
+          uint32_t scalar = create_difficulty_scalar(challenge.data(), challenge.size(), solution);
 
           if (check_difficulty(scalar, difficulty)) {
             power_solution s;
-            s.challenge = challenge;
+            s.challenge = std::vector(challenge.begin(), challenge.end());
             s.solution = solution;
             s.nonce = nonce;
             equix_free(ctx);
@@ -248,7 +241,7 @@ namespace tools
       }
 
       equix_free(ctx);
-      throw std::runtime_error("unreachable?");
+      throw std::runtime_error("practically unreachable for realistic difficulties");
     }
 
     power_solution solve_p2p(
