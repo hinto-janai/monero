@@ -67,7 +67,7 @@ namespace tools
     inline constexpr size_t DIFFICULTY = 200;
 
     // Personalization string used in PoWER hashes.
-    inline constexpr std::string_view PERSONALIZATION_STRING {"Monero PoWER"};
+    inline constexpr std::string_view PERSONALIZATION_STRING = "Monero PoWER";
 
     // (PERSONALIZATION_STRING || tx_prefix_hash || recent_block_hash || nonce)
     inline constexpr size_t CHALLENGE_SIZE_RPC =
@@ -111,34 +111,34 @@ namespace tools
       uint32_t nonce;
     };
 
-    /**
-    * @brief Find an Equi-X solution to a challenge.
-    *
-    * @param challenge       Pointer to the challenge data.
-    * @param challenge_size  Size of the challenge.
-    *
-    * @return The solution if one is found, otherwise std::nullopt
-    */
-    std::optional<std::array<uint16_t, 8>> find_equix_solution(
-      const void* challenge,
-      const size_t challenge_size
-    );
+    // /**
+    // * @brief Find an Equi-X solution to a challenge.
+    // *
+    // * @param challenge       Pointer to the challenge data.
+    // * @param challenge_size  Size of the challenge.
+    // *
+    // * @return The solution if one is found, otherwise std::nullopt
+    // */
+    // std::optional<std::array<uint16_t, 8>> find_equix_solution(
+    //   const void* challenge,
+    //   const size_t challenge_size
+    // );
 
-    /**
-    * @brief Verify an Equi-X solution.
-    *
-    * @param challenge       Pointer to the challenge data.
-    * @param challenge_size  Size of the challenge.
-    * @param solution        The Equi-X solution to verify.
-    *
-    * @return true  – if verification succeeded
-    * @return false – if verification failed (invalid input, allocation error, difficulty too low).
-    */
-    bool verify_equix_solution(
-      const void* challenge,
-      const size_t challenge_size,
-      const std::array<uint16_t, 8> solution
-    );
+    // /**
+    // * @brief Verify an Equi-X solution.
+    // *
+    // * @param challenge       Pointer to the challenge data.
+    // * @param challenge_size  Size of the challenge.
+    // * @param solution        The Equi-X solution to verify.
+    // *
+    // * @return true  – if verification succeeded
+    // * @return false – if verification failed (invalid input, allocation error, difficulty too low).
+    // */
+    // bool verify_equix_solution(
+    //   const void* challenge,
+    //   const size_t challenge_size,
+    //   const std::array<uint16_t, 8> solution
+    // );
 
     /**
     * @brief Create the difficulty scalar used for `check_difficulty`.
@@ -219,23 +219,23 @@ namespace tools
       const uint32_t difficulty
     );
 
-    /**
-    * @brief Verify a PoWER solution.
-    *
-    * @param challenge       Pointer to the challenge data.
-    * @param challenge_size  Size of the challenge.
-    * @param solution        The Equi-X solution.
-    * @param difficulty      The difficulty parameter.
-    *
-    * @return true - if the challenge and solution are well-formed, valid, and pass the difficulty.
-    * @return false – if verification failed (invalid input, allocation error, difficulty too low).
-    */
-    bool verify(
-      const void* challenge,
-      const size_t challenge_size,
-      const uint32_t difficulty,
-      const std::array<uint16_t, 8> solution
-    );
+    // /**
+    // * @brief Verify a PoWER solution.
+    // *
+    // * @param challenge       Pointer to the challenge data.
+    // * @param challenge_size  Size of the challenge.
+    // * @param solution        The Equi-X solution.
+    // * @param difficulty      The difficulty parameter.
+    // *
+    // * @return true - if the challenge and solution are well-formed, valid, and pass the difficulty.
+    // * @return false – if verification failed (invalid input, allocation error, difficulty too low).
+    // */
+    // bool verify(
+    //   const void* challenge,
+    //   const size_t challenge_size,
+    //   const uint32_t difficulty,
+    //   const std::array<uint16_t, 8> solution
+    // );
 
     /**
     * @brief Verify a PoWER solution for RPC.

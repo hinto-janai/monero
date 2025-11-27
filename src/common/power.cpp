@@ -41,6 +41,7 @@
 //local headers
 #include "crypto/blake2b.h"
 #include "int-util.h"
+#include "string_tools.h"
 
 //third party headers
 #include <boost/multiprecision/cpp_int.hpp>
@@ -70,56 +71,113 @@ namespace tools
         memcpy(s.data(), solution.idx, sizeof(s));
         return s;
       }
-    }
 
-    std::optional<std::array<uint16_t, 8>> find_equix_solution(
-      const void* challenge,
-      const size_t challenge_size
-    ) {
-      if (challenge == nullptr || challenge_size == 0)
-        return std::nullopt;
+      template<std::size_t T>
+      bool verify_equix_solution(
+        const std::array<std::uint8_t, T>& challenge,
+        const std::array<uint16_t, 8> solution
+      ) {
+        equix_ctx* ctx = equix_alloc(EQUIX_CTX_VERIFY);
 
-      equix_ctx* ctx = equix_alloc(EQUIX_CTX_SOLVE);
-      if (ctx == nullptr) {
-        return std::nullopt;
+        if (ctx == nullptr) {
+          return false;
+        }
+
+        equix_result result = equix_verify(
+          ctx,
+          challenge.data(),
+          challenge.size(),
+          reinterpret_cast<const equix_solution*>(solution.data())
+        );
+
+        equix_free(ctx);
+
+        return (result == EQUIX_OK);
       }
 
-      equix_solution solution[EQUIX_MAX_SOLS];
-      int solution_count = equix_solve(ctx, challenge, challenge_size, solution);
+      // Generic Equi-X + difficulty solving function.
+      template<std::size_t T>
+      power_solution solve(
+        std::array<std::uint8_t, T> challenge,
+        const uint32_t difficulty,
+        const size_t nonce_index
+      ) {
+        equix_ctx* ctx = equix_alloc(EQUIX_CTX_SOLVE);
 
-      equix_free(ctx);
+        if (ctx == nullptr) {
+          throw std::runtime_error("equix_alloc returned nullptr");
+        }
 
-      if (solution_count <= 0)
-        return std::nullopt;
+        equix_solution solutions[EQUIX_MAX_SOLS];
+        std::array<uint16_t, 8> solution;
 
-      return equix_solution_to_array(solution[0]);
-    }
+        for (uint32_t nonce = 0;; ++nonce) {
+          const uint32_t n = swap32le(nonce);
+          memcpy(challenge.data() + nonce_index, &n, sizeof(n));
 
-    bool verify_equix_solution(
-      const void* challenge,
-      const size_t challenge_size,
-      const std::array<uint16_t, 8> solution
-    ) {
-      if (challenge == nullptr || challenge_size == 0)
-        return false;
+          const int solution_count = equix_solve(ctx, challenge.data(), challenge.size(), solutions);
 
-      equix_ctx* ctx = equix_alloc(EQUIX_CTX_VERIFY);
+          if (solution_count <= 0)
+          {
+            continue;
+          }
 
-      if (ctx == nullptr) {
-        return false;
+          for (int i = 0; i < solution_count; ++i) {
+            memcpy(solution.data(), solutions[i].idx, sizeof(solution));
+            uint32_t scalar = create_difficulty_scalar(challenge.data(), challenge.size(), solution);
+
+            if (check_difficulty(scalar, difficulty)) {
+              equix_free(ctx);
+              return {
+                .challenge = std::vector(challenge.begin(), challenge.end()),
+                .solution = solution,
+                .nonce = nonce,
+              };
+            }
+          }
+        }
+
+        equix_free(ctx);
+        throw std::runtime_error("practically unreachable for realistic difficulties");
       }
 
-      equix_result result = equix_verify(
-        ctx,
-        challenge,
-        challenge_size,
-        reinterpret_cast<const equix_solution*>(solution.data())
-      );
+      // Generic Equi-X + difficulty verifying function.
+      template<std::size_t T>
+      bool verify(
+        const std::array<uint8_t, T> challenge,
+        const uint32_t difficulty,
+        const std::array<uint16_t, 8> solution
+      ) {
+        if (!verify_equix_solution(challenge, solution))
+          return false;
 
-      equix_free(ctx);
-
-      return (result == EQUIX_OK);
+        const uint32_t scalar = create_difficulty_scalar(challenge.data(), challenge.size(), solution);
+        return (check_difficulty(scalar, difficulty));
+      }
     }
+
+    // std::optional<std::array<uint16_t, 8>> find_equix_solution(
+    //   const void* challenge,
+    //   const size_t challenge_size
+    // ) {
+    //   if (challenge == nullptr || challenge_size == 0)
+    //     return std::nullopt;
+
+    //   equix_ctx* ctx = equix_alloc(EQUIX_CTX_SOLVE);
+    //   if (ctx == nullptr) {
+    //     return std::nullopt;
+    //   }
+
+    //   equix_solution solution[EQUIX_MAX_SOLS];
+    //   int solution_count = equix_solve(ctx, challenge, challenge_size, solution);
+
+    //   equix_free(ctx);
+
+    //   if (solution_count <= 0)
+    //     return std::nullopt;
+
+    //   return equix_solution_to_array(solution[0]);
+    // }
 
     uint32_t create_difficulty_scalar(
       const void* challenge,
@@ -129,16 +187,11 @@ namespace tools
       assert(challenge != nullptr);
       assert(challenge_size != 0);
 
-      const size_t personalization_size = PERSONALIZATION_STRING.size();
-      const size_t solution_size = solution.size() * sizeof(uint16_t);
-
-      const uint8_t *solution_bytes = reinterpret_cast<const uint8_t*>(solution.data());
-
       blake2b_state state;
       blake2b_init(&state, 4);
-      blake2b_update(&state, PERSONALIZATION_STRING.data(), personalization_size);
-      blake2b_update(&state, static_cast<const uint8_t*>(challenge), challenge_size);
-      blake2b_update(&state, solution_bytes, solution_size);
+      blake2b_update(&state, PERSONALIZATION_STRING.data(), PERSONALIZATION_STRING.size());
+      blake2b_update(&state, challenge, challenge_size);
+      blake2b_update(&state, reinterpret_cast<const uint8_t*>(solution.data()), sizeof(solution));
 
       uint8_t out[4];
       blake2b_final(&state, out, 4);
@@ -151,9 +204,7 @@ namespace tools
 
     bool check_difficulty(uint32_t scalar, uint32_t difficulty)
     {
-      const std::uint64_t product =
-        static_cast<std::uint64_t>(scalar) * static_cast<std::uint64_t>(difficulty);
-
+      const std::uint64_t product = uint64_t(scalar) * uint64_t(difficulty);
       return product <= std::numeric_limits<std::uint32_t>::max();
     }
 
@@ -183,13 +234,10 @@ namespace tools
 
       memcpy(out.data(), PERSONALIZATION_STRING.data(), PERSONALIZATION_STRING.size());
 
-      const uint128_t nonce_128 =
-        (uint128_t(power_challenge_nonce_top64) << 64) | power_challenge_nonce;
-
-      std::array<std::uint8_t, 16> bytes_128;
-      boost::multiprecision::export_bits(nonce_128, std::begin(bytes_128), 8, false);
-
-      memcpy(out.data() + 12, bytes_128.data(), bytes_128.size());
+      const uint64_t low = swap64le(power_challenge_nonce);
+      const uint64_t high = swap64le(power_challenge_nonce_top64);
+      const uint128_t nonce_128 = (uint128_t(high) << 64) | low;
+      memcpy(out.data() + 12, &nonce_128, sizeof(nonce_128));
 
       const uint32_t n = swap32le(nonce);
       memcpy(out.data() + 28, &n, sizeof(n));
@@ -202,46 +250,10 @@ namespace tools
       const crypto::hash& recent_block_hash,
       const uint32_t difficulty
     ) {
-      equix_ctx* ctx = equix_alloc(EQUIX_CTX_SOLVE);
-
-      if (ctx == nullptr) {
-        throw std::runtime_error("equix_alloc returned nullptr");
-      }
-
       std::array<std::uint8_t, CHALLENGE_SIZE_RPC> challenge =
         create_challenge_rpc(tx_prefix_hash, recent_block_hash, 0);
 
-      equix_solution solutions[EQUIX_MAX_SOLS];
-      std::array<uint16_t, 8> solution;
-
-      for (uint32_t nonce = 0;; ++nonce) {
-        const uint32_t n = swap32le(nonce);
-        memcpy(challenge.data() + 76, &n, sizeof(n));
-
-        const int solution_count = equix_solve(ctx, challenge.data(), challenge.size(), solutions);
-
-        if (solution_count <= 0)
-        {
-          continue;
-        }
-
-        for (int i = 0; i < solution_count; ++i) {
-          memcpy(solution.data(), solutions[i].idx, solution.size());
-          uint32_t scalar = create_difficulty_scalar(challenge.data(), challenge.size(), solution);
-
-          if (check_difficulty(scalar, difficulty)) {
-            power_solution s;
-            s.challenge = std::vector(challenge.begin(), challenge.end());
-            s.solution = solution;
-            s.nonce = nonce;
-            equix_free(ctx);
-            return s;
-          }
-        }
-      }
-
-      equix_free(ctx);
-      throw std::runtime_error("practically unreachable for realistic difficulties");
+      return solve(challenge, difficulty, 76);
     }
 
     power_solution solve_p2p(
@@ -249,22 +261,10 @@ namespace tools
       uint64_t power_challenge_nonce_top64,
       uint32_t difficulty
     ) {
-      // TODO
-      power_solution s;
-      return s;
-    }
+      std::array<std::uint8_t, CHALLENGE_SIZE_P2P> challenge =
+        create_challenge_p2p(power_challenge_nonce, power_challenge_nonce_top64, 0);
 
-    bool verify(
-      const void* challenge,
-      const size_t challenge_size,
-      const uint32_t difficulty,
-      const std::array<uint16_t, 8> solution
-    ) {
-      if (!verify_equix_solution(challenge, challenge_size, solution))
-        return false;
-
-      const uint32_t scalar = create_difficulty_scalar(challenge, challenge_size, solution);
-      return (check_difficulty(scalar, difficulty));
+      return solve(challenge, difficulty, 28);
     }
 
     bool verify_rpc(
@@ -280,7 +280,7 @@ namespace tools
         nonce
       );
 
-      return verify(challenge.data(), challenge.size(), difficulty, solution);
+      return verify(challenge, difficulty, solution);
     }
 
     bool verify_p2p(
@@ -296,7 +296,7 @@ namespace tools
         nonce
       );
 
-      return verify(challenge.data(), challenge.size(), difficulty, solution);
+      return verify(challenge, difficulty, solution);
     }
 
   } // namespace power
