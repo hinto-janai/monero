@@ -526,7 +526,7 @@ namespace cryptonote
       return false;
     }
 
-    if (tx_prefix.vin.size() <= POWER_INPUT_THRESHOLD)
+    if (tx_prefix.vin.size() <= tools::power::INPUT_THRESHOLD)
       return true;
 
     crypto::hash block_hash;
@@ -546,7 +546,7 @@ namespace cryptonote
     const uint64_t height = m_core.get_current_blockchain_height() - 1;
 
     bool hash_is_recent = false;
-    for (uint64_t h = height; h >= height - POWER_HEIGHT_WINDOW && h < height; --h)
+    for (uint64_t h = height; h >= height - tools::power::HEIGHT_WINDOW && h < height; --h)
     {
       if (h == 0)
       {
@@ -574,27 +574,12 @@ namespace cryptonote
       return false;
     }
 
-    const crypto::hash tx_prefix_hash = get_transaction_prefix_hash(tx_prefix);
-
-    // challenge = (tx_prefix_hash || recent_block_hash || nonce)
-    //
-    // TODO: surely there is a safer way to do this
-    std::vector<uint8_t> challenge;
-    challenge.reserve(sizeof(tx_prefix_hash) + sizeof(recent_block_hash));
-    const uint8_t* p1 = reinterpret_cast<const uint8_t*>(&tx_prefix_hash);
-    challenge.insert(challenge.end(), p1, p1 + sizeof(crypto::hash));
-    const uint8_t* p2 = reinterpret_cast<const uint8_t*>(&recent_block_hash);
-    challenge.insert(challenge.end(), p2, p2 + sizeof(crypto::hash));
-    uint32_t nonce_le = swap32le(nonce);
-    const uint8_t* p3 = reinterpret_cast<const uint8_t*>(&nonce_le);
-    challenge.insert(challenge.end(), p3, p3 + sizeof(nonce_le));
-
-
-    if (!tools::verify_power(
-      static_cast<void*>(challenge.data()),
-      challenge.size(),
-      solution,
-      POWER_TARGET_DIFFICULTY
+    if (!tools::power::verify_rpc(
+      get_transaction_prefix_hash(tx_prefix),
+      block_hash,
+      nonce,
+      tools::power::DIFFICULTY,
+      solution
     )) {
       status = "Invalid PoW solution";
       return false;
