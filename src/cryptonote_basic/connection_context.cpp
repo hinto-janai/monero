@@ -65,6 +65,8 @@ namespace cryptonote
       return 1024 * 1024; // 1 MB
     case cryptonote::NOTIFY_GET_TXPOOL_COMPLEMENT::ID:
       return 1024 * 1024 * 4; // 4 MB
+    case cryptonote::NOTIFY_POWER_SOLUTION::ID:
+      return 64; // 64 B
     default:
       break;
     };

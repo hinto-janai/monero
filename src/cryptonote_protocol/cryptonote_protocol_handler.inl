@@ -905,6 +905,38 @@ namespace cryptonote
   }
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>
+  int t_cryptonote_protocol_handler<t_core>::handle_notify_power_solution(int command, NOTIFY_POWER_SOLUTION::request& arg, cryptonote_connection_context& context)
+  {
+    MLOG_P2P_MESSAGE("Received NOTIFY_POWER_SOLUTION (nonce: " << nonce << ")");
+
+    uint128_t power_challenge_nonce = /* TODO: retrieve from `<connection_id, power_challenge_nonce>` */;
+
+    // challenge = (power_challenge_nonce || nonce)
+    std::vector<uint8_t> challenge;
+    challenge.reserve(sizeof(power_challenge_nonce) + sizeof(arg.nonce));
+
+    // TODO: surely there is a safer way to do this
+    const uint8_t* p1 = reinterpret_cast<const uint8_t*>(&power_challenge_nonce);
+    challenge.insert(challenge.end(), p1, p1 + sizeof(power_challenge_nonce));
+    uint32_t nonce_le = swap32le(nonce);
+    const uint8_t* p2 = reinterpret_cast<const uint8_t*>(&nonce_le);
+    challenge.insert(challenge.end(), p2, p2 + sizeof(nonce_le));
+
+    if (!tools::verify_power(
+      static_cast<void*>(challenge.data()),
+      challenge.size(),
+      arg.solution,
+      POWER_TARGET_DIFFICULTY
+    )) {
+      LOG_ERROR_CCONTEXT("Invalid solution");
+      return 0;
+    }
+
+    context.power_enabled = true;
+    return 1;
+  }
+  //------------------------------------------------------------------------------------------------------------------------
+  template<class t_core>
   int t_cryptonote_protocol_handler<t_core>::handle_notify_new_transactions(int command, NOTIFY_NEW_TRANSACTIONS::request& arg, cryptonote_connection_context& context)
   {
     MLOG_P2P_MESSAGE("Received NOTIFY_NEW_TRANSACTIONS (" << arg.txs.size() << " txes)");
