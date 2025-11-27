@@ -39,6 +39,7 @@ using namespace epee;
 #include "common/command_line.h"
 #include "common/updates.h"
 #include "common/download.h"
+#include "common/power.h"
 #include "common/util.h"
 #include "common/merge_sorted_vectors.h"
 #include "common/perf_timer.h"
@@ -505,6 +506,102 @@ namespace cryptonote
     return true;
   }
 #define CHECK_CORE_READY() do { if(!check_core_ready()){res.status =  CORE_RPC_STATUS_BUSY;return true;} } while(0)
+
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::validate_power(
+    const cryptonote::blobdata& txblob,
+    const std::string& recent_block_hash,
+    const std::string& power_solution,
+    uint32_t nonce,
+    bool restricted,
+    std::string& status
+  ) {
+    if (!restricted)
+      return true;
+
+    cryptonote::transaction_prefix tx_prefix;
+    if (!cryptonote::parse_and_validate_tx_prefix_from_blob(txblob, tx_prefix))
+    {
+      status = "Failed to parse and validate tx prefix from blob";
+      return false;
+    }
+
+    if (tx_prefix.vin.size() <= POWER_INPUT_THRESHOLD)
+      return true;
+
+    crypto::hash block_hash;
+    if (recent_block_hash.size() != 64 || !string_tools::hex_to_pod(recent_block_hash, block_hash))
+    {
+      status = "Failed to decode recent_block_hash";
+      return false;
+    }
+
+    std::array<uint16_t, 8> solution;
+    if (power_solution.size() != 32 || !string_tools::hex_to_pod(power_solution, solution))
+    {
+      status = "Failed to decode power_solution";
+      return false;
+    }
+
+    const uint64_t height = m_core.get_current_blockchain_height() - 1;
+
+    bool hash_is_recent = false;
+    for (uint64_t h = height; h >= height - POWER_HEIGHT_WINDOW && h < height; --h)
+    {
+      if (h == 0)
+      {
+        break;
+      }
+
+      crypto::hash id = m_core.get_block_id_by_height(h);
+
+      if (id == crypto::null_hash)
+      {
+        status = "recent_block_hash was not found";
+        return false;
+      }
+
+      if (id == block_hash)
+      {
+        hash_is_recent = true;
+        break;
+      }
+    }
+
+    if (!hash_is_recent)
+    {
+      status = "recent_block_hash is not within the allowed window";
+      return false;
+    }
+
+    const crypto::hash tx_prefix_hash = get_transaction_prefix_hash(tx_prefix);
+
+    // challenge = (tx_prefix_hash || recent_block_hash || nonce)
+    //
+    // TODO: surely there is a safer way to do this
+    std::vector<uint8_t> challenge;
+    challenge.reserve(sizeof(tx_prefix_hash) + sizeof(recent_block_hash));
+    const uint8_t* p1 = reinterpret_cast<const uint8_t*>(&tx_prefix_hash);
+    challenge.insert(challenge.end(), p1, p1 + sizeof(crypto::hash));
+    const uint8_t* p2 = reinterpret_cast<const uint8_t*>(&recent_block_hash);
+    challenge.insert(challenge.end(), p2, p2 + sizeof(crypto::hash));
+    uint32_t nonce_le = swap32le(nonce);
+    const uint8_t* p3 = reinterpret_cast<const uint8_t*>(&nonce_le);
+    challenge.insert(challenge.end(), p3, p3 + sizeof(nonce_le));
+
+
+    if (!tools::verify_power(
+      static_cast<void*>(challenge.data()),
+      challenge.size(),
+      solution,
+      POWER_TARGET_DIFFICULTY
+    )) {
+      status = "Invalid PoW solution";
+      return false;
+    }
+
+    return true;
+  }
 
   //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_get_height(const COMMAND_RPC_GET_HEIGHT::request& req, COMMAND_RPC_GET_HEIGHT::response& res, const connection_context *ctx)
@@ -1556,6 +1653,18 @@ namespace cryptonote
       return true;
     }
     res.sanity_check_failed = false;
+
+    if (!validate_power(
+      tx_blob,
+      req.recent_block_hash,
+      req.power_solution,
+      req.nonce,
+      restricted,
+      res.reason
+    )) {
+      res.status = "Failed";
+      return false;
+    }
 
     if (!skip_validation)
     {
@@ -3469,46 +3578,47 @@ namespace cryptonote
   bool core_rpc_server::on_relay_tx(const COMMAND_RPC_RELAY_TX::request& req, COMMAND_RPC_RELAY_TX::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx)
   {
     RPC_TRACKER(relay_tx);
-    CHECK_PAYMENT_MIN1(req, res, req.txids.size() * COST_PER_TX_RELAY, false);
+    CHECK_PAYMENT_MIN1(req, res, COST_PER_TX_RELAY, false);
 
     const bool restricted = m_restricted && ctx;
 
-    bool failed = false;
-    res.status = "";
-    for (const auto &str: req.txids)
+    crypto::hash txid;
+    if(!epee::string_tools::hex_to_pod(req.txid, txid))
     {
-      crypto::hash txid;
-      if(!epee::string_tools::hex_to_pod(str, txid))
-      {
-        if (!res.status.empty()) res.status += ", ";
-        res.status += std::string("invalid transaction id: ") + str;
-        failed = true;
-        continue;
-      }
-
-      //TODO: The get_pool_transaction could have an optional meta parameter
-      bool broadcasted = false;
-      cryptonote::blobdata txblob;
-      if ((broadcasted = m_core.get_pool_transaction(txid, txblob, relay_category::broadcasted)) || (!restricted && m_core.get_pool_transaction(txid, txblob, relay_category::all)))
-      {
-        // The settings below always choose i2p/tor if enabled. Otherwise, do fluff iff previously relayed else dandelion++ stem.
-        NOTIFY_NEW_TRANSACTIONS::request r;
-        r.txs.push_back(std::move(txblob));
-        const auto tx_relay = broadcasted ? relay_method::fluff : relay_method::local;
-        m_core.get_protocol()->relay_transactions(r, boost::uuids::nil_uuid(), epee::net_utils::zone::invalid, tx_relay);
-        //TODO: make sure that tx has reached other nodes here, probably wait to receive reflections from other nodes
-      }
-      else
-      {
-        if (!res.status.empty()) res.status += ", ";
-        res.status += std::string("transaction not found in pool: ") + str;
-        failed = true;
-        continue;
-      }
+      res.status = std::string("invalid transaction id: ") + req.txid;
+      error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
+      error_resp.message = res.status;
+      return false;
     }
 
-    if (failed)
+    //TODO: The get_pool_transaction could have an optional meta parameter
+    bool broadcasted = false;
+    cryptonote::blobdata txblob;
+    if ((broadcasted = m_core.get_pool_transaction(txid, txblob, relay_category::broadcasted)) || (!restricted && m_core.get_pool_transaction(txid, txblob, relay_category::all)))
     {
+      if (!validate_power(
+        txblob,
+        req.recent_block_hash,
+        req.power_solution,
+        req.nonce,
+        restricted,
+        res.status
+      )) {
+        error_resp.code = CORE_RPC_ERROR_CODE_WRONG_PARAM;
+        error_resp.message = res.status;
+        return false;
+      }
+
+      // The settings below always choose i2p/tor if enabled. Otherwise, do fluff iff previously relayed else dandelion++ stem.
+      NOTIFY_NEW_TRANSACTIONS::request r;
+      r.txs.push_back(std::move(txblob));
+      const auto tx_relay = broadcasted ? relay_method::fluff : relay_method::local;
+      m_core.get_protocol()->relay_transactions(r, boost::uuids::nil_uuid(), epee::net_utils::zone::invalid, tx_relay);
+      //TODO: make sure that tx has reached other nodes here, probably wait to receive reflections from other nodes
+    }
+    else
+    {
+      res.status = std::string("transaction not found in pool: ") + req.txid;
       error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
       error_resp.message = res.status;
       return false;

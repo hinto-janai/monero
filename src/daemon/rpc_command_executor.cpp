@@ -2223,7 +2223,7 @@ bool t_rpc_command_executor::relay_tx(const std::string &txid)
     std::string fail_message = "Unsuccessful";
     epee::json_rpc::error error_resp;
 
-    req.txids.push_back(txid);
+    req.txid = txid;
 
     if (m_is_rpc)
     {
