@@ -42,6 +42,7 @@
 #include <ctime>
 
 #include <cryptonote_core/cryptonote_core.h>
+#include "common/power.h"
 #include "cryptonote_protocol/cryptonote_protocol_handler.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "profile_tools.h"
@@ -907,26 +908,27 @@ namespace cryptonote
   template<class t_core>
   int t_cryptonote_protocol_handler<t_core>::handle_notify_power_solution(int command, NOTIFY_POWER_SOLUTION::request& arg, cryptonote_connection_context& context)
   {
-    MLOG_P2P_MESSAGE("Received NOTIFY_POWER_SOLUTION (nonce: " << nonce << ")");
+    MLOG_P2P_MESSAGE("Received NOTIFY_POWER_SOLUTION (nonce: " << arg.nonce << ")");
 
-    uint128_t power_challenge_nonce = /* TODO: retrieve from `<connection_id, power_challenge_nonce>` */;
+    if (arg.solution.size() != 8)
+    {
+      LOG_ERROR_CCONTEXT("Solution wrong size");
+      return 0;
+    }
 
-    // challenge = (power_challenge_nonce || nonce)
-    std::vector<uint8_t> challenge;
-    challenge.reserve(sizeof(power_challenge_nonce) + sizeof(arg.nonce));
+    std::array<uint16_t, 8> solution {};
+    std::copy(arg.solution.begin(), arg.solution.end(), solution.begin());
 
-    // TODO: surely there is a safer way to do this
-    const uint8_t* p1 = reinterpret_cast<const uint8_t*>(&power_challenge_nonce);
-    challenge.insert(challenge.end(), p1, p1 + sizeof(power_challenge_nonce));
-    uint32_t nonce_le = swap32le(nonce);
-    const uint8_t* p2 = reinterpret_cast<const uint8_t*>(&nonce_le);
-    challenge.insert(challenge.end(), p2, p2 + sizeof(nonce_le));
+    /* TODO: retrieve from `<connection_id, challenge_nonce>` */
+    uint64_t challenge_nonce = 0;
+    uint64_t challenge_nonce_top64 = 0;
 
-    if (!tools::verify_power(
-      static_cast<void*>(challenge.data()),
-      challenge.size(),
-      arg.solution,
-      POWER_TARGET_DIFFICULTY
+    if (!tools::power::verify_p2p(
+      challenge_nonce,
+      challenge_nonce_top64,
+      arg.nonce,
+      tools::power::DIFFICULTY,
+      solution
     )) {
       LOG_ERROR_CCONTEXT("Invalid solution");
       return 0;

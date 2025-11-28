@@ -41,7 +41,6 @@
 //local headers
 #include "crypto/blake2b.h"
 #include "int-util.h"
-#include "string_tools.h"
 
 //third party headers
 #include <boost/multiprecision/cpp_int.hpp>
@@ -54,7 +53,6 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
-#include <optional>
 
 //forward declarations
 
@@ -128,11 +126,11 @@ namespace tools
 
             if (check_difficulty(scalar, difficulty)) {
               equix_free(ctx);
-              return {
-                .challenge = std::vector(challenge.begin(), challenge.end()),
-                .solution = solution,
-                .nonce = nonce,
-              };
+              power_solution s;
+              s.challenge = std::vector(challenge.begin(), challenge.end());
+              s.solution = solution;
+              s.nonce = nonce;
+              return s;
             }
           }
         }
@@ -226,16 +224,16 @@ namespace tools
     }
 
     std::array<std::uint8_t, CHALLENGE_SIZE_P2P> create_challenge_p2p(
-      const uint64_t power_challenge_nonce,
-      const uint64_t power_challenge_nonce_top64,
+      const uint64_t challenge_nonce,
+      const uint64_t challenge_nonce_top64,
       const uint32_t nonce
     ) noexcept {
       std::array<std::uint8_t, CHALLENGE_SIZE_P2P> out {};
 
       memcpy(out.data(), PERSONALIZATION_STRING.data(), PERSONALIZATION_STRING.size());
 
-      const uint64_t low = swap64le(power_challenge_nonce);
-      const uint64_t high = swap64le(power_challenge_nonce_top64);
+      const uint64_t low = swap64le(challenge_nonce);
+      const uint64_t high = swap64le(challenge_nonce_top64);
       const uint128_t nonce_128 = (uint128_t(high) << 64) | low;
       memcpy(out.data() + 12, &nonce_128, sizeof(nonce_128));
 
@@ -257,12 +255,12 @@ namespace tools
     }
 
     power_solution solve_p2p(
-      uint64_t power_challenge_nonce,
-      uint64_t power_challenge_nonce_top64,
+      uint64_t challenge_nonce,
+      uint64_t challenge_nonce_top64,
       uint32_t difficulty
     ) {
       std::array<std::uint8_t, CHALLENGE_SIZE_P2P> challenge =
-        create_challenge_p2p(power_challenge_nonce, power_challenge_nonce_top64, 0);
+        create_challenge_p2p(challenge_nonce, challenge_nonce_top64, 0);
 
       return solve(challenge, difficulty, 28);
     }
@@ -284,15 +282,15 @@ namespace tools
     }
 
     bool verify_p2p(
-      const uint64_t power_challenge_nonce,
-      const uint64_t power_challenge_nonce_top64,
+      const uint64_t challenge_nonce,
+      const uint64_t challenge_nonce_top64,
       const uint32_t nonce,
       const uint32_t difficulty,
       const std::array<uint16_t, 8> solution
     ) {
       std::array<std::uint8_t, CHALLENGE_SIZE_P2P> challenge = create_challenge_p2p(
-        power_challenge_nonce,
-        power_challenge_nonce_top64,
+        challenge_nonce,
+        challenge_nonce_top64,
         nonce
       );
 

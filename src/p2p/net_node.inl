@@ -45,6 +45,7 @@
 #include <tuple>
 #include <vector>
 
+#include "common/power.h"
 #include "version.h"
 #include "string_tools.h"
 #include "common/util.h"
@@ -2722,9 +2723,9 @@ namespace nodetool
       context.sent_addresses.insert(e.adr);
     get_local_node_data(rsp.node_data, zone);
     m_payload_handler.get_payload_sync_data(rsp.payload_data);
-    rsp.power_difficulty = POWER_TARGET_DIFFICULTY;
-    rsp.power_challenge_nonce = crypto::rand<uint64_t>();
-    rsp.power_challenge_nonce_top64 = crypto::rand<uint64_t>();
+    rsp.power_data.difficulty = tools::power::DIFFICULTY;
+    rsp.power_data.challenge_nonce = crypto::rand<uint64_t>();
+    rsp.power_data.challenge_nonce_top64 = crypto::rand<uint64_t>();
     LOG_DEBUG_CC(context, "COMMAND_HANDSHAKE");
     return 1;
   }

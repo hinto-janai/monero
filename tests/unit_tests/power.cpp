@@ -66,8 +66,8 @@ struct test_data_rpc {
 };
 
 struct test_data_p2p {
-  uint64_t power_challenge_nonce;
-  uint64_t power_challenge_nonce_top64;
+  uint64_t challenge_nonce;
+  uint64_t challenge_nonce_top64;
   uint32_t expected_nonce;
   /// Final challenge bytes, not the initial bytes.
   std::string_view expected_challenge;
@@ -240,12 +240,12 @@ namespace tools
       for (const auto& t : TEST_DATA_P2P)
       {
         const power_solution s =
-          solve_p2p(t.power_challenge_nonce, t.power_challenge_nonce_top64, DIFF);
+          solve_p2p(t.challenge_nonce, t.challenge_nonce_top64, DIFF);
 
         ASSERT_EQ(s.nonce, t.expected_nonce);
 
         const std::array<std::uint8_t, CHALLENGE_SIZE_P2P> c =
-          create_challenge_p2p(t.power_challenge_nonce, t.power_challenge_nonce_top64, t.expected_nonce);
+          create_challenge_p2p(t.challenge_nonce, t.challenge_nonce_top64, t.expected_nonce);
 
         const std::string c_hex = epee::string_tools::pod_to_hex(c);
         ASSERT_EQ(c_hex, t.expected_challenge);
@@ -263,8 +263,8 @@ namespace tools
         ASSERT_EQ(false, check_difficulty(d, last_difficulty_that_passes + 1));
 
         ASSERT_EQ(true, verify_p2p(
-          t.power_challenge_nonce,
-          t.power_challenge_nonce_top64,
+          t.challenge_nonce,
+          t.challenge_nonce_top64,
           t.expected_nonce,
           DIFF,
           s.solution

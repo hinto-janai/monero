@@ -157,21 +157,28 @@ namespace nodetool
     uint16_t rpc_port;
     uint32_t rpc_credits_per_hash;
     peerid_type peer_id;
-    uint32_t power_difficulty;
-    uint64_t power_challenge_nonce;
-    uint64_t power_challenge_nonce_top64;
     uint32_t support_flags;
 
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE_VAL_POD_AS_BLOB(network_id)
       KV_SERIALIZE(peer_id)
       KV_SERIALIZE(my_port)
-      KV_SERIALIZE(power_difficulty)
-      KV_SERIALIZE(power_challenge_nonce)
-      KV_SERIALIZE(power_challenge_nonce_top64)
       KV_SERIALIZE_OPT(rpc_port, (uint16_t)(0))
       KV_SERIALIZE_OPT(rpc_credits_per_hash, (uint32_t)0)
       KV_SERIALIZE_OPT(support_flags, (uint32_t)0)
+    END_KV_SERIALIZE_MAP()
+  };
+
+  struct power_challenge_data
+  {
+    uint64_t challenge_nonce;
+    uint64_t challenge_nonce_top64;
+    uint32_t difficulty;
+
+    BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE(challenge_nonce)
+      KV_SERIALIZE(challenge_nonce_top64)
+      KV_SERIALIZE(difficulty)
     END_KV_SERIALIZE_MAP()
   };
   
@@ -189,10 +196,12 @@ namespace nodetool
     struct request_t
     {
       basic_node_data node_data;
+      power_challenge_data power_data;
       t_playload_type payload_data;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(node_data)
+        KV_SERIALIZE(power_data)
         KV_SERIALIZE(payload_data)
       END_KV_SERIALIZE_MAP()
     };
@@ -201,11 +210,13 @@ namespace nodetool
     struct response_t
     {
       basic_node_data node_data;
+      power_challenge_data power_data;
       t_playload_type payload_data;
       std::vector<peerlist_entry> local_peerlist_new;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(node_data)
+        KV_SERIALIZE(power_data)
         KV_SERIALIZE(payload_data)
         KV_SERIALIZE(local_peerlist_new)
       END_KV_SERIALIZE_MAP()

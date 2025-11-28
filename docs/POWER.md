@@ -71,16 +71,16 @@ TODO
 For P2P:
 
 ```
-challenge = (POWER_PERSONALIZATION_STRING || power_challenge_nonce || nonce)
+challenge = (POWER_PERSONALIZATION_STRING || challenge_nonce || nonce)
 ```
 
 where:
 
 - `POWER_PERSONALIZATION_STRING` is the string "Monero PoWER" as bytes.
-- `power_challenge_nonce` is a 128-bit unsigned integer generated for each connection.
+- `challenge_nonce` is a 128-bit unsigned integer generated for each connection.
 - `nonce` is a 32-bit unsigned integer.
 
-`power_difficulty` and `power_challenge_nonce` is provided by nodes in the initial P2P handshake message.
+`power_difficulty` and `challenge_nonce` is provided by nodes in the initial P2P handshake message.
 
 `nonce` should be adjusted until a valid Equi-X `solution` is produced that passes the difficulty formula with `power_difficulty`, then a `NOTIFY_POWER_SOLUTION` message should be sent containing the `solution` and `nonce`. This will enable high input transaction relay for that connection.
 

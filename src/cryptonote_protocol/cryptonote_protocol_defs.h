@@ -389,7 +389,7 @@ namespace cryptonote
 
     struct request_t
     {
-      std::array<uint16_t, 8> solution;
+      std::vector<uint16_t> solution;
       uint32_t nonce;
 
       BEGIN_KV_SERIALIZE_MAP()
