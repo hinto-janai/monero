@@ -91,6 +91,7 @@ using namespace epee;
 #include "common/dns_utils.h"
 #include "common/notify.h"
 #include "common/perf_timer.h"
+#include "common/power.h"
 #include "ringct/rctSigs.h"
 #include "ringdb.h"
 #include "device/device_cold.hpp"
@@ -7754,6 +7755,27 @@ void wallet2::commit_tx(pending_tx& ptx)
   req.tx_as_hex = epee::string_tools::buff_to_hex_nodelimer(tx_to_blob(ptx.tx));
   req.do_not_relay = false;
   req.do_sanity_checks = true;
+
+  // TODO
+  if (!tools::is_local_address(m_daemon_address))
+  {
+    MDEBUG("Non local RPC: finding PoWER solution");
+
+    // TODO
+    crypto::hash tx_prefix_hash {};
+    crypto::hash recent_block_hash {};
+
+    tools::power::power_solution s = tools::power::solve_rpc(
+      tx_prefix_hash,
+      recent_block_hash,
+      tools::power::DIFFICULTY
+    );
+
+    req.recent_block_hash = epee::string_tools::pod_to_hex(recent_block_hash);
+    req.power_solution = epee::string_tools::pod_to_hex(s.solution);
+    req.nonce = s.nonce;
+  }
+
   COMMAND_RPC_SEND_RAW_TX::response daemon_send_resp;
 
   {
