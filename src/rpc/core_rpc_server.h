@@ -296,21 +296,21 @@ private:
     /**
     * @brief Validate PoWER for RPC requests.
     *
-    * @param txblob            Raw transaction blob from request.
-    * @param recent_block_hash Hex encoded recent block hash from request.
-    * @param power_solution    Hex encoded Equi-X solution from request.
-    * @param nonce             Nonce value from request.
+    * @param txblob        Raw transaction blob from request.
+    * @param block_hash    Hex encoded recent block hash from request.
+    * @param solution      Hex encoded Equi-X solution from request.
+    * @param nonce         Nonce value from request.
     *
-    * @param restricted        `true` if the endpoint is restricted, otherwise `false`.
-    * @param status            `status` field from request type.
+    * @param restricted    `true` if the endpoint is restricted, otherwise `false`.
+    * @param status        `status` field from request type.
     *
     * @return true  – PoW is either not required or the solution is valid.
-    * @return false – an error was detected; *status*, *code*, and *message* should propagate to the RPC response.
+    * @return false – an error was detected; `status`, `code`, and `message` should propagate to the RPC response.
     */
     bool validate_power(
       const cryptonote::blobdata& txblob,
-      const std::string& recent_block_hash,
-      const std::string& power_solution,
+      const std::string& block_hash,
+      const std::string& solution,
       uint32_t nonce,
       bool restricted,
       std::string& status

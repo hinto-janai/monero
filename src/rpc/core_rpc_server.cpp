@@ -510,9 +510,9 @@ namespace cryptonote
   //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::validate_power(
     const cryptonote::blobdata& txblob,
-    const std::string& recent_block_hash,
+    const std::string& power_block_hash,
     const std::string& power_solution,
-    uint32_t nonce,
+    uint32_t power_nonce,
     bool restricted,
     std::string& status
   ) {
@@ -530,9 +530,9 @@ namespace cryptonote
       return true;
 
     crypto::hash block_hash;
-    if (recent_block_hash.size() != 64 || !string_tools::hex_to_pod(recent_block_hash, block_hash))
+    if (power_block_hash.size() != 64 || !string_tools::hex_to_pod(power_block_hash, block_hash))
     {
-      status = "Failed to decode recent_block_hash";
+      status = "Failed to decode power_block_hash";
       return false;
     }
 
@@ -557,7 +557,7 @@ namespace cryptonote
 
       if (id == crypto::null_hash)
       {
-        status = "recent_block_hash was not found";
+        status = "power_block_hash was not found";
         return false;
       }
 
@@ -570,14 +570,14 @@ namespace cryptonote
 
     if (!hash_is_recent)
     {
-      status = "recent_block_hash is not within the allowed window";
+      status = "power_block_hash is not within the allowed window";
       return false;
     }
 
     if (!tools::power::verify_rpc(
       get_transaction_prefix_hash(tx_prefix),
       block_hash,
-      nonce,
+      power_nonce,
       tools::power::DIFFICULTY,
       solution
     )) {
@@ -1650,9 +1650,9 @@ namespace cryptonote
 
     if (!validate_power(
       tx_blob,
-      req.recent_block_hash,
+      req.power_block_hash,
       req.power_solution,
-      req.nonce,
+      req.power_nonce,
       restricted,
       res.reason
     )) {
@@ -3592,9 +3592,9 @@ namespace cryptonote
     {
       if (!validate_power(
         txblob,
-        req.recent_block_hash,
+        req.power_block_hash,
         req.power_solution,
-        req.nonce,
+        req.power_nonce,
         restricted,
         res.status
       )) {

@@ -726,18 +726,18 @@ inline const std::string get_rpc_status(const bool trusted_daemon, const std::st
     struct request_t: public rpc_access_request_base
     {
       std::string tx_as_hex;
-      std::string recent_block_hash;
+      std::string power_block_hash;
       std::string power_solution;
-      uint32_t nonce;
+      uint32_t power_nonce;
       bool do_not_relay;
       bool do_sanity_checks;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE_PARENT(rpc_access_request_base)
         KV_SERIALIZE(tx_as_hex)
-        KV_SERIALIZE(recent_block_hash)
+        KV_SERIALIZE(power_block_hash)
         KV_SERIALIZE(power_solution)
-        KV_SERIALIZE(nonce)
+        KV_SERIALIZE(power_nonce)
         KV_SERIALIZE_OPT(do_not_relay, false)
         KV_SERIALIZE_OPT(do_sanity_checks, true)
       END_KV_SERIALIZE_MAP()
@@ -2472,16 +2472,16 @@ inline const std::string get_rpc_status(const bool trusted_daemon, const std::st
     struct request_t: public rpc_access_request_base
     {
       std::string txid;
-      std::string recent_block_hash;
+      std::string power_block_hash;
       std::string power_solution;
-      uint32_t nonce;
+      uint32_t power_nonce;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE_PARENT(rpc_access_request_base)
         KV_SERIALIZE(txid)
-        KV_SERIALIZE(recent_block_hash)
+        KV_SERIALIZE(power_block_hash)
         KV_SERIALIZE(power_solution)
-        KV_SERIALIZE(nonce)
+        KV_SERIALIZE(power_nonce)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<request_t> request;
