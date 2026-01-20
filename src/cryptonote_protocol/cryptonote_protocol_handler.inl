@@ -933,13 +933,13 @@ namespace cryptonote
     std::array<uint16_t, 8> solution {};
     std::copy(arg.solution.begin(), arg.solution.end(), solution.begin());
 
-    /* TODO: retrieve from `<connection_id, challenge_nonce>` */
-    uint64_t challenge_nonce = 0;
-    uint64_t challenge_nonce_top64 = 0;
+    /* TODO: retrieve from `<connection_id, seed>` */
+    uint64_t seed = 0;
+    uint64_t seed_top64 = 0;
 
     if (!tools::power::verify_p2p(
-      challenge_nonce,
-      challenge_nonce_top64,
+      seed,
+      seed_top64,
       arg.nonce,
       tools::power::DIFFICULTY,
       solution

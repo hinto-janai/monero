@@ -100,16 +100,17 @@ namespace tools
       sizeof(crypto::hash) +
       sizeof(uint32_t);
 
-    // (PERSONALIZATION_STRING || challenge_nonce || challenge_nonce_top64 || nonce)
+    // (PERSONALIZATION_STRING || seed || seed_top64 || difficulty || nonce)
     inline constexpr size_t CHALLENGE_SIZE_P2P =
       PERSONALIZATION_STRING.size() +
       sizeof(uint64_t) +
       sizeof(uint64_t) +
+      sizeof(uint32_t) +
       sizeof(uint32_t);
 
     static_assert(PERSONALIZATION_STRING.size() == 12, "Implementation assumes 12 bytes");
     static_assert(CHALLENGE_SIZE_RPC == 80, "Implementation assumes 80 bytes");
-    static_assert(CHALLENGE_SIZE_P2P == 32, "Implementation assumes 32 bytes");
+    static_assert(CHALLENGE_SIZE_P2P == 36, "Implementation assumes 36 bytes");
     static_assert(sizeof(crypto::hash) == 32, "Implementation assumes 32 bytes");
     static_assert(sizeof(std::array<uint16_t, 8>) == sizeof(equix_solution), "Implementation assumes 16 bytes");
 
@@ -121,14 +122,22 @@ namespace tools
     };
 
     struct power_challenge_rpc {
+      // Hash of transaction prefix.
       crypto::hash tx_prefix_hash;
+      // Block hash within the last POWER_HEIGHT_WINDOW blocks.
       crypto::hash recent_block_hash;
+      // A valid nonce.
       uint32_t nonce;
     };
 
     struct power_challenge_p2p {
-      uint64_t challenge_nonce;
-      uint64_t challenge_nonce_top64;
+      // Low bits of 128-bit seed.
+      uint64_t seed;
+      // High bits of 128-bit seed.
+      uint64_t seed_top64;
+      // Difficulty parameter from peer.
+      uint32_t difficulty;
+      // A valid nonce.
       uint32_t nonce;
     };
 
@@ -201,15 +210,17 @@ namespace tools
     /**
     * @brief Create a PoWER challenge for P2P.
     *
-    * @param challenge_nonce        Low bytes of challenge nonce.
-    * @param challenge_nonce_top64  High bytes of challenge nonce.
-    * @param nonce                  The nonce parameter.
+    * @param seed        Low bytes of challenge seed.
+    * @param seed_top64  High bytes of challenge seed.
+    * @param difficulty  The difficulty parameter.
+    * @param nonce       The nonce parameter.
     *
     * @return PoWER P2P challenge as bytes.
     */
     std::array<std::uint8_t, CHALLENGE_SIZE_P2P> create_challenge_p2p(
-      const uint64_t challenge_nonce,
-      const uint64_t challenge_nonce_top64,
+      const uint64_t seed,
+      const uint64_t seed_top64,
+      const uint32_t difficulty,
       const uint32_t nonce
     ) noexcept;
 
@@ -229,13 +240,13 @@ namespace tools
     /**
     * @brief Generate and solve a PoWER challenge for P2P for a given difficulty.
     *
-    * @param challenge_nonce        Low bytes of challenge nonce.
-    * @param challenge_nonce_top64  High bytes of challenge nonce.
-    * @param difficulty             The difficulty parameter.
+    * @param seed        Low bytes of challenge seed.
+    * @param seed_top64  High bytes of challenge seed.
+    * @param difficulty  The difficulty parameter.
     */
     power_solution solve_p2p(
-      const uint64_t challenge_nonce,
-      const uint64_t challenge_nonce_top64,
+      const uint64_t seed,
+      const uint64_t seed_top64,
       const uint32_t difficulty
     );
 
@@ -280,20 +291,20 @@ namespace tools
     /**
     * @brief Verify a PoWER solution for P2P.
     *
-    * @param challenge_nonce        Low bytes of challenge nonce.
-    * @param challenge_nonce_top64  High bytes of challenge nonce.
-    * @param nonce                  A valid nonce.
-    * @param difficulty             The difficulty parameter.
-    * @param solution               The Equi-X solution.
+    * @param seed        Low bytes of challenge seed.
+    * @param seed_top64  High bytes of challenge seed.
+    * @param nonce       A valid nonce.
+    * @param difficulty  The difficulty parameter.
+    * @param solution    The Equi-X solution.
     *
     * @return true  – if verification succeeded
     * @return false – if verification failed (invalid input, allocation error, difficulty too low).
     */
     bool verify_p2p(
-      const uint64_t challenge_nonce,
-      const uint64_t challenge_nonce_top64,
-      const uint32_t nonce,
+      const uint64_t seed,
+      const uint64_t seed_top64,
       const uint32_t difficulty,
+      const uint32_t nonce,
       const std::array<uint16_t, 8> solution
     );
 

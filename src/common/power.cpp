@@ -224,21 +224,25 @@ namespace tools
     }
 
     std::array<std::uint8_t, CHALLENGE_SIZE_P2P> create_challenge_p2p(
-      const uint64_t challenge_nonce,
-      const uint64_t challenge_nonce_top64,
+      const uint64_t seed,
+      const uint64_t seed_top64,
+      const uint32_t difficulty,
       const uint32_t nonce
     ) noexcept {
       std::array<std::uint8_t, CHALLENGE_SIZE_P2P> out {};
 
       memcpy(out.data(), PERSONALIZATION_STRING.data(), PERSONALIZATION_STRING.size());
 
-      const uint64_t low = swap64le(challenge_nonce);
-      const uint64_t high = swap64le(challenge_nonce_top64);
+      const uint64_t low = swap64le(seed);
+      const uint64_t high = swap64le(seed_top64);
       const uint128_t nonce_128 = (uint128_t(high) << 64) | low;
       memcpy(out.data() + 12, &nonce_128, sizeof(nonce_128));
 
+      const uint32_t d = swap32le(difficulty);
+      memcpy(out.data() + 28, &d, sizeof(d));
+
       const uint32_t n = swap32le(nonce);
-      memcpy(out.data() + 28, &n, sizeof(n));
+      memcpy(out.data() + 32, &n, sizeof(n));
 
       return out;
     }
@@ -255,12 +259,12 @@ namespace tools
     }
 
     power_solution solve_p2p(
-      uint64_t challenge_nonce,
-      uint64_t challenge_nonce_top64,
+      uint64_t seed,
+      uint64_t seed_top64,
       uint32_t difficulty
     ) {
       std::array<std::uint8_t, CHALLENGE_SIZE_P2P> challenge =
-        create_challenge_p2p(challenge_nonce, challenge_nonce_top64, 0);
+        create_challenge_p2p(seed, seed_top64, difficulty, 0);
 
       return solve(challenge, difficulty, 28);
     }
@@ -282,15 +286,16 @@ namespace tools
     }
 
     bool verify_p2p(
-      const uint64_t challenge_nonce,
-      const uint64_t challenge_nonce_top64,
-      const uint32_t nonce,
+      const uint64_t seed,
+      const uint64_t seed_top64,
       const uint32_t difficulty,
+      const uint32_t nonce,
       const std::array<uint16_t, 8> solution
     ) {
       std::array<std::uint8_t, CHALLENGE_SIZE_P2P> challenge = create_challenge_p2p(
-        challenge_nonce,
-        challenge_nonce_top64,
+        seed,
+        seed_top64,
+        difficulty,
         nonce
       );
 

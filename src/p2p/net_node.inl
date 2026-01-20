@@ -2724,8 +2724,8 @@ namespace nodetool
     get_local_node_data(rsp.node_data, zone);
     m_payload_handler.get_payload_sync_data(rsp.payload_data);
     rsp.power_data.difficulty = tools::power::DIFFICULTY;
-    rsp.power_data.challenge_nonce = crypto::rand<uint64_t>();
-    rsp.power_data.challenge_nonce_top64 = crypto::rand<uint64_t>();
+    rsp.power_data.seed = crypto::rand<uint64_t>();
+    rsp.power_data.seed_top64 = crypto::rand<uint64_t>();
     LOG_DEBUG_CC(context, "COMMAND_HANDSHAKE");
     return 1;
   }

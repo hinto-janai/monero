@@ -171,13 +171,13 @@ namespace nodetool
 
   struct power_challenge_data
   {
-    uint64_t challenge_nonce;
-    uint64_t challenge_nonce_top64;
+    uint64_t seed;
+    uint64_t seed_top64;
     uint32_t difficulty;
 
     BEGIN_KV_SERIALIZE_MAP()
-      KV_SERIALIZE(challenge_nonce)
-      KV_SERIALIZE(challenge_nonce_top64)
+      KV_SERIALIZE(seed)
+      KV_SERIALIZE(seed_top64)
       KV_SERIALIZE(difficulty)
     END_KV_SERIALIZE_MAP()
   };
