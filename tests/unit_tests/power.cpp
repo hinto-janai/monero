@@ -138,22 +138,22 @@ constexpr std::array<test_data_rpc, 3> TEST_DATA_RPC {{
 
 constexpr std::array<test_data_p2p, 3> TEST_DATA_P2P {{
   {
-    0, 0, 3,
-    "4d6f6e65726f20506f5745520000000000000000000000000000000003000000",
-    "a9134e68eb2ead688a0e07a2e41c8fbb",
-    92234552,
+    0, 0, 10,
+    "4d6f6e65726f20506f574552000000000000000000000000000000000f0000000a000000",
+    "ad025bac4c7bb2dfcb4bb666cf2643e8",
+    252557470,
   },
   {
-    1589356, 6700, 27,
-    "4d6f6e65726f20506f5745526c401800000000002c1a0000000000001b000000",
-    "a9b4a1c93bcc8fccdb110aa9ca72fbf0",
-    55210249,
+    1589356, 6700, 0,
+    "4d6f6e65726f20506f5745526c401800000000002c1a0000000000000f00000000000000",
+    "0d25ad67fb065baae91a0d29a31db9d8",
+    50548387,
   },
   {
-    std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(), 8,
-    "4d6f6e65726f20506f574552ffffffffffffffffffffffffffffffff08000000",
-    "65078d52335fc374891acee8bbbc60f9",
-    196156172,
+    std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(), 4,
+    "4d6f6e65726f20506f574552ffffffffffffffffffffffffffffffff0f00000004000000",
+    "3357a279712c70e3e26442d864282ef8",
+    170469575,
   },
 }};
 
