@@ -7773,24 +7773,24 @@ void wallet2::commit_tx(pending_tx& ptx)
   req.do_not_relay = false;
   req.do_sanity_checks = true;
 
-  // TODO
-  if (!tools::is_local_address(m_daemon_address))
+  // PoWER checks.
+  if ((!tools::is_local_address(m_daemon_address)) && (ptx.tx.vin.size() >= tools::power::INPUT_THRESHOLD))
   {
-    MDEBUG("Non local RPC: finding PoWER solution");
+    MDEBUG("Finding PoWER solution...");
 
     // TODO
     crypto::hash tx_prefix_hash {};
-    crypto::hash recent_block_hash {};
+    crypto::hash power_block_hash {};
 
     tools::power::power_solution s = tools::power::solve_rpc(
       tx_prefix_hash,
-      recent_block_hash,
+      power_block_hash,
       tools::power::DIFFICULTY
     );
 
-    req.recent_block_hash = epee::string_tools::pod_to_hex(recent_block_hash);
+    req.power_block_hash = epee::string_tools::pod_to_hex(power_block_hash);
     req.power_solution = epee::string_tools::pod_to_hex(s.solution);
-    req.nonce = s.nonce;
+    req.power_nonce = s.nonce;
   }
 
   COMMAND_RPC_SEND_RAW_TX::response daemon_send_resp;
