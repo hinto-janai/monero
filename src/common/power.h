@@ -54,6 +54,7 @@
 
 namespace tools
 {
+  // RPC related code apply to both the RPC and ZMQ-RPC interfaces.
   namespace power
   {
     // Input counts greater than this require PoWER.
@@ -63,7 +64,31 @@ namespace tools
     inline constexpr size_t HEIGHT_WINDOW = 2;
 
     // Fixed difficulty for valid PoW.
+    // Target time = ~1s of single-threaded computation.
+    //
+    // The difficulty value and computation time
+    // are directly proportional, in other words:
+    // - `DIFFICULTY = 200` takes twice as long as
+    // - `DIFFICULTY = 100` takes twice as long as
+    // - `DIFFICULTY = 50` and so on
+    //
+    // Reference values; value of machines are measured in
+    // seconds and rounded to the expected average given
+    // enough computation:
+    //
+    // | Difficulty | Raspberry Pi 5 | Ryzen 5950x | Mac mini M4 |
+    // |------------|----------------|-------------|-------------|
+    // | 25         | 0.6            | 0.15        | 0.09        |
+    // | 50         | 1.2            | 0.30        | 0.18        |
+    // | 100        | 2.4            | 0.60        | 0.37        |
+    // | 200        | 4.8            | 1.20        | 0.75        |
+    // | 400        | 9.6            | 2.40        | 1.50        |
     inline constexpr size_t DIFFICULTY = 200;
+
+    // Technically, nodes can be modified to send lower/higher difficulties in P2P.
+    // A vanilla node will adjust accordingly; it can and will and solve a higher difficulty challenge.
+    // This is the max valid difficulty requested from a peer before the connection is dropped.
+    inline constexpr size_t MAX_DIFFICULTY = DIFFICULTY * 2;
 
     // Personalization string used in PoWER hashes.
     inline constexpr std::string_view PERSONALIZATION_STRING = "Monero PoWER";
@@ -123,16 +148,15 @@ namespace tools
     // /**
     // * @brief Verify an Equi-X solution.
     // *
-    // * @param challenge       Pointer to the challenge data.
-    // * @param challenge_size  Size of the challenge.
+    // * @param challenge       Challenge data.
     // * @param solution        The Equi-X solution to verify.
     // *
     // * @return true  – if verification succeeded
     // * @return false – if verification failed (invalid input, allocation error, difficulty too low).
     // */
+    // template<std::size_t T>
     // bool verify_equix_solution(
-    //   const void* challenge,
-    //   const size_t challenge_size,
+    //   const std::array<std::uint8_t, T>& challenge,
     //   const std::array<uint16_t, 8> solution
     // );
 
@@ -179,7 +203,7 @@ namespace tools
     *
     * @param challenge_nonce        Low bytes of challenge nonce.
     * @param challenge_nonce_top64  High bytes of challenge nonce.
-    * @param nonce                        The nonce parameter.
+    * @param nonce                  The nonce parameter.
     *
     * @return PoWER P2P challenge as bytes.
     */
@@ -207,7 +231,7 @@ namespace tools
     *
     * @param challenge_nonce        Low bytes of challenge nonce.
     * @param challenge_nonce_top64  High bytes of challenge nonce.
-    * @param difficulty                   The difficulty parameter.
+    * @param difficulty             The difficulty parameter.
     */
     power_solution solve_p2p(
       const uint64_t challenge_nonce,
@@ -258,9 +282,9 @@ namespace tools
     *
     * @param challenge_nonce        Low bytes of challenge nonce.
     * @param challenge_nonce_top64  High bytes of challenge nonce.
-    * @param nonce                        A valid nonce.
-    * @param difficulty                   The difficulty parameter.
-    * @param solution                     The Equi-X solution.
+    * @param nonce                  A valid nonce.
+    * @param difficulty             The difficulty parameter.
+    * @param solution               The Equi-X solution.
     *
     * @return true  – if verification succeeded
     * @return false – if verification failed (invalid input, allocation error, difficulty too low).
