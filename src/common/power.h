@@ -64,6 +64,7 @@ namespace tools
     inline constexpr size_t HEIGHT_WINDOW = 2;
 
     // Fixed difficulty for valid PoW.
+    //
     // Target time = ~1s of single-threaded computation.
     //
     // The difficulty value and computation time
@@ -85,6 +86,8 @@ namespace tools
     // | 400        | 9.6            | 2.40        | 1.50        |
     inline constexpr size_t DIFFICULTY = 200;
 
+    // Max difficulty value.
+    //
     // Technically, nodes can be modified to send lower/higher difficulties in P2P.
     // A vanilla node will adjust accordingly; it can and will and solve a higher difficulty challenge.
     // This is the max valid difficulty requested from a peer before the connection is dropped.

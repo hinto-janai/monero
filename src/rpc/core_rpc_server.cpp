@@ -3572,47 +3572,46 @@ namespace cryptonote
   bool core_rpc_server::on_relay_tx(const COMMAND_RPC_RELAY_TX::request& req, COMMAND_RPC_RELAY_TX::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx)
   {
     RPC_TRACKER(relay_tx);
-    CHECK_PAYMENT_MIN1(req, res, COST_PER_TX_RELAY, false);
+    CHECK_PAYMENT_MIN1(req, res, req.txids.size() * COST_PER_TX_RELAY, false);
 
     const bool restricted = m_restricted && ctx;
 
-    crypto::hash txid;
-    if(!epee::string_tools::hex_to_pod(req.txid, txid))
+    bool failed = false;
+    res.status = "";
+    for (const auto &str: req.txids)
     {
-      res.status = std::string("invalid transaction id: ") + req.txid;
-      error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
-      error_resp.message = res.status;
-      return false;
-    }
-
-    //TODO: The get_pool_transaction could have an optional meta parameter
-    bool broadcasted = false;
-    cryptonote::blobdata txblob;
-    if ((broadcasted = m_core.get_pool_transaction(txid, txblob, relay_category::broadcasted)) || (!restricted && m_core.get_pool_transaction(txid, txblob, relay_category::all)))
-    {
-      if (!validate_power(
-        txblob,
-        req.power_block_hash,
-        req.power_solution,
-        req.power_nonce,
-        restricted,
-        res.status
-      )) {
-        error_resp.code = CORE_RPC_ERROR_CODE_WRONG_PARAM;
-        error_resp.message = res.status;
-        return false;
+      crypto::hash txid;
+      if(!epee::string_tools::hex_to_pod(str, txid))
+      {
+        if (!res.status.empty()) res.status += ", ";
+        res.status += std::string("invalid transaction id: ") + str;
+        failed = true;
+        continue;
       }
 
-      // The settings below always choose i2p/tor if enabled. Otherwise, do fluff iff previously relayed else dandelion++ stem.
-      NOTIFY_NEW_TRANSACTIONS::request r;
-      r.txs.push_back(std::move(txblob));
-      const auto tx_relay = broadcasted ? relay_method::fluff : relay_method::local;
-      m_core.get_protocol()->relay_transactions(r, boost::uuids::nil_uuid(), epee::net_utils::zone::invalid, tx_relay);
-      //TODO: make sure that tx has reached other nodes here, probably wait to receive reflections from other nodes
+      //TODO: The get_pool_transaction could have an optional meta parameter
+      bool broadcasted = false;
+      cryptonote::blobdata txblob;
+      if ((broadcasted = m_core.get_pool_transaction(txid, txblob, relay_category::broadcasted)) || (!restricted && m_core.get_pool_transaction(txid, txblob, relay_category::all)))
+      {
+        // The settings below always choose i2p/tor if enabled. Otherwise, do fluff iff previously relayed else dandelion++ stem.
+        NOTIFY_NEW_TRANSACTIONS::request r;
+        r.txs.push_back(std::move(txblob));
+        const auto tx_relay = broadcasted ? relay_method::fluff : relay_method::local;
+        m_core.get_protocol()->relay_transactions(r, boost::uuids::nil_uuid(), epee::net_utils::zone::invalid, tx_relay);
+        //TODO: make sure that tx has reached other nodes here, probably wait to receive reflections from other nodes
+      }
+      else
+      {
+        if (!res.status.empty()) res.status += ", ";
+        res.status += std::string("transaction not found in pool: ") + str;
+        failed = true;
+        continue;
+      }
     }
-    else
+
+    if (failed)
     {
-      res.status = std::string("transaction not found in pool: ") + req.txid;
       error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
       error_resp.message = res.status;
       return false;

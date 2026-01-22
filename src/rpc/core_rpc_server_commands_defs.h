@@ -2471,17 +2471,11 @@ inline const std::string get_rpc_status(const bool trusted_daemon, const std::st
   {
     struct request_t: public rpc_access_request_base
     {
-      std::string txid;
-      std::string power_block_hash;
-      std::string power_solution;
-      uint32_t power_nonce;
+      std::vector<std::string> txids;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE_PARENT(rpc_access_request_base)
-        KV_SERIALIZE(txid)
-        KV_SERIALIZE(power_block_hash)
-        KV_SERIALIZE(power_solution)
-        KV_SERIALIZE(power_nonce)
+        KV_SERIALIZE(txids)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<request_t> request;
