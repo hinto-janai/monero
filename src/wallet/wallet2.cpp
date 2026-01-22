@@ -7773,14 +7773,19 @@ void wallet2::commit_tx(pending_tx& ptx)
   req.do_not_relay = false;
   req.do_sanity_checks = true;
 
-  // PoWER checks.
-  if ((!tools::is_local_address(m_daemon_address)) && (ptx.tx.vin.size() >= tools::power::INPUT_THRESHOLD))
+  // Find PoWER solution if necessary.
+  if ((!tools::is_local_address(m_daemon_address)) && (ptx.tx.vin.size() > tools::power::INPUT_THRESHOLD))
   {
     MDEBUG("Finding PoWER solution...");
 
-    // TODO
-    crypto::hash tx_prefix_hash {};
-    crypto::hash power_block_hash {};
+    THROW_WALLET_EXCEPTION_IF(
+      m_blockchain.size() < 1,
+      error::wallet_internal_error,
+      "Wallet does not have block hashes for PoWER input data"
+    );
+
+    const crypto::hash power_block_hash = m_blockchain[m_blockchain.size() - 1];
+    const crypto::hash tx_prefix_hash = cryptonote::get_transaction_prefix_hash(ptx.tx);
 
     tools::power::power_solution s = tools::power::solve_rpc(
       tx_prefix_hash,
