@@ -6,7 +6,7 @@ This document contains instructions on how to follow the protocol.
 
 - [Background](#background)
 - [Definitions and notes](#definitions-and-notes)
-- [Calculating PoWER challenges/solutions](#calculating-power-challenges-solutions)
+- [Calculating PoWER challenges and solutions](#calculating-power-challenges-solutions)
 	- [Challenge](#challenge)
 		- [RPC](#rpc)
 		- [P2P](#p2p)
@@ -32,11 +32,11 @@ PoWER adds a computational cost by requiring Proof-of-Work (PoW) to be performed
 - Concatenation of bytes is denoted by `||`.
 - All operations converting between integers and bytes are in little endian encoding.
 
-## Calculating PoWER challenges/solutions
+## Calculating PoWER challenges and solutions
 
 PoWER uses [Equi-X](https://github.com/tevador/equix) as the PoW algorithm.
 
-Equi-X is a CPU-friendly [client-puzzle](https://en.wikipedia.org/wiki/Client_Puzzle_Protocol) that takes in a ["challenge" (bytes)](https://github.com/tevador/equix/blob/c0b0d2bd210b870b3077f487a3705dfa7578208f/include/equix.h#L121) and outputs a [16-byte "solution"](https://github.com/tevador/equix/blob/c0b0d2bd210b870b3077f487a3705dfa7578208f/include/equix.h#L28-L30).
+Equi-X is a CPU-friendly [client-puzzle](https://en.wikipedia.org/wiki/Client_Puzzle_Protocol) that takes in a ["challenge" (bytes)](https://github.com/tevador/equix/blob/c0b0d2bd210b870b3077f487a3705dfa7578208f/include/equix.h#L121) and outputs a [16-byte array "solution"](https://github.com/tevador/equix/blob/c0b0d2bd210b870b3077f487a3705dfa7578208f/include/equix.h#L28-L30).
 
 ### Challenge
 
@@ -56,6 +56,8 @@ where:
 - `tx_prefix_hash` is the transaction prefix hash of the transaction being relayed.
 - `recent_block_hash` is a hash of a block within the last `HEIGHT_WINDOW` blocks.
 - `nonce` is a 32-bit unsigned integer.
+
+In the Monero codebase, this is the `create_challenge_rpc` function.
 
 RPC endpoints that relay transactions contain fields where this data must be passed alongside the transaction.
 
@@ -77,6 +79,8 @@ where:
 - `seed` is a random 128-bit unsigned integer generated for each connection.
 - `difficulty` is the 32-bit unsigned integer difficulty parameter the node requires to be used.
 - `nonce` is a 32-bit unsigned integer.
+
+In the Monero codebase, this is the `create_challenge_p2p` function.
 
 `seed` and `difficulty` are provided by nodes in the initial P2P handshake message.
 
@@ -107,11 +111,15 @@ For 2, a difficulty scalar must be created with:
 scalar = to_le_bytes(blake2b_32(PERSONALIZATION_STRING || challenge || solution))
 ```
 
+where:
+
 - `to_le_bytes` converts a 4-byte array into a 32-bit unsigned integer in little endian order.
 - `blake2b_32` is a `blake2b` hash set to a 32-bit output.
 - `PERSONALIZATION_STRING` is the string "Monero PoWER".
 - `challenge` are the full challenge bytes.
 - `solution` are the Equi-X solution bytes.
+
+In the Monero codebase, this is the `create_difficulty_scalar` function.
 
 `scalar` must now pass the following difficulty formula:
 
@@ -119,6 +127,8 @@ scalar = to_le_bytes(blake2b_32(PERSONALIZATION_STRING || challenge || solution)
 scalar * difficulty <= MAX_UINT32
 ```
 
+where:
+
 - `difficulty` is either a constant (`DIFFICULTY`) for RPC, or the `difficulty` received from a peer for P2P.
 
-In the Monero codebase, this is the `create_difficulty_scalar` and `check_difficulty` functions.
+In the Monero codebase, this is the `check_difficulty` function.
