@@ -1,4 +1,4 @@
-// PoWER uses Equi-X by tevador here:
+// PoWER uses Equi-X:
 // <https://github.com/tevador/equix/>.
 //
 // Equi-X is:
@@ -63,19 +63,14 @@ namespace tools
     // Number of recent block hashes viable for RPC.
     inline constexpr size_t HEIGHT_WINDOW = 2;
 
-    // Fixed difficulty for valid PoW.
+    // Fixed difficulty for the difficulty formula.
     //
     // Target time = ~1s of single-threaded computation.
     //
-    // The difficulty value and computation time
-    // are directly proportional, in other words:
-    // - `DIFFICULTY = 200` takes twice as long as
-    // - `DIFFICULTY = 100` takes twice as long as
-    // - `DIFFICULTY = 50` and so on
+    // The difficulty value and computation time have a quadratic relationship.
     //
-    // Reference values; value of machines are measured in
-    // seconds and rounded to the expected average given
-    // enough computation:
+    // Reference values; value of machines are measured in seconds
+    // and rounded to an expected average given enough computation:
     //
     // | Difficulty | Raspberry Pi 5 | Ryzen 5950x | Mac mini M4 |
     // |------------|----------------|-------------|-------------|
@@ -127,7 +122,7 @@ namespace tools
     struct power_challenge_rpc {
       // Hash of transaction prefix.
       crypto::hash tx_prefix_hash;
-      // Block hash within the last POWER_HEIGHT_WINDOW blocks.
+      // Block hash within the last HEIGHT_WINDOW blocks.
       crypto::hash recent_block_hash;
       // A valid nonce.
       uint32_t nonce;
@@ -144,34 +139,6 @@ namespace tools
       uint32_t nonce;
     };
 
-    // /**
-    // * @brief Find an Equi-X solution to a challenge.
-    // *
-    // * @param challenge       Pointer to the challenge data.
-    // * @param challenge_size  Size of the challenge.
-    // *
-    // * @return The solution if one is found, otherwise std::nullopt
-    // */
-    // std::optional<std::array<uint16_t, 8>> find_equix_solution(
-    //   const void* challenge,
-    //   const size_t challenge_size
-    // );
-
-    // /**
-    // * @brief Verify an Equi-X solution.
-    // *
-    // * @param challenge       Challenge data.
-    // * @param solution        The Equi-X solution to verify.
-    // *
-    // * @return true  – if verification succeeded
-    // * @return false – if verification failed (invalid input, allocation error, difficulty too low).
-    // */
-    // template<std::size_t T>
-    // bool verify_equix_solution(
-    //   const std::array<std::uint8_t, T>& challenge,
-    //   const std::array<uint16_t, 8> solution
-    // );
-
     /**
     * @brief Create the difficulty scalar used for `check_difficulty`.
     *
@@ -183,7 +150,7 @@ namespace tools
       const void* challenge,
       const size_t challenge_size,
       const std::array<uint16_t, 8> solution
-    );
+    ) noexcept ;
 
     /**
     * @brief Check if a PoWER solution satisfies a difficulty.
@@ -193,7 +160,7 @@ namespace tools
     *
     * @return - true if the difficulty check passes, false otherwise.
     */
-    bool check_difficulty(const uint32_t scalar, uint32_t difficulty);
+    constexpr bool check_difficulty(const uint32_t scalar, uint32_t difficulty) noexcept;
 
     /**
     * @brief Create a PoWER challenge for RPC.
@@ -252,24 +219,6 @@ namespace tools
       const uint64_t seed_top64,
       const uint32_t difficulty
     );
-
-    // /**
-    // * @brief Verify a PoWER solution.
-    // *
-    // * @param challenge       Pointer to the challenge data.
-    // * @param challenge_size  Size of the challenge.
-    // * @param solution        The Equi-X solution.
-    // * @param difficulty      The difficulty parameter.
-    // *
-    // * @return true - if the challenge and solution are well-formed, valid, and pass the difficulty.
-    // * @return false – if verification failed (invalid input, allocation error, difficulty too low).
-    // */
-    // bool verify(
-    //   const void* challenge,
-    //   const size_t challenge_size,
-    //   const uint32_t difficulty,
-    //   const std::array<uint16_t, 8> solution
-    // );
 
     /**
     * @brief Verify a PoWER solution for RPC.

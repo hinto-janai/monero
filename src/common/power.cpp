@@ -63,13 +63,6 @@ namespace tools
     using boost::multiprecision::uint128_t;
 
     namespace {
-      std::array<uint16_t, 8> equix_solution_to_array(const equix_solution solution)
-      {
-        std::array<uint16_t, 8> s;
-        memcpy(s.data(), solution.idx, sizeof(s));
-        return s;
-      }
-
       template<std::size_t T>
       bool verify_equix_solution(
         const std::array<std::uint8_t, T>& challenge,
@@ -154,34 +147,11 @@ namespace tools
       }
     }
 
-    // std::optional<std::array<uint16_t, 8>> find_equix_solution(
-    //   const void* challenge,
-    //   const size_t challenge_size
-    // ) {
-    //   if (challenge == nullptr || challenge_size == 0)
-    //     return std::nullopt;
-
-    //   equix_ctx* ctx = equix_alloc(EQUIX_CTX_SOLVE);
-    //   if (ctx == nullptr) {
-    //     return std::nullopt;
-    //   }
-
-    //   equix_solution solution[EQUIX_MAX_SOLS];
-    //   int solution_count = equix_solve(ctx, challenge, challenge_size, solution);
-
-    //   equix_free(ctx);
-
-    //   if (solution_count <= 0)
-    //     return std::nullopt;
-
-    //   return equix_solution_to_array(solution[0]);
-    // }
-
     uint32_t create_difficulty_scalar(
       const void* challenge,
       const size_t challenge_size,
       const std::array<uint16_t, 8> solution
-    ) {
+    ) noexcept {
       assert(challenge != nullptr);
       assert(challenge_size != 0);
 
@@ -200,7 +170,7 @@ namespace tools
       return scalar;
     }
 
-    bool check_difficulty(uint32_t scalar, uint32_t difficulty)
+    constexpr bool check_difficulty(uint32_t scalar, uint32_t difficulty) noexcept
     {
       const std::uint64_t product = uint64_t(scalar) * uint64_t(difficulty);
       return product <= std::numeric_limits<std::uint32_t>::max();
