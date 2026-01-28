@@ -46,7 +46,6 @@
 #include <vector>
 
 #include "common/power.h"
-#include "cryptonote_basic/connection_context.h"
 #include "cryptonote_protocol/cryptonote_protocol_defs.h"
 #include "version.h"
 #include "string_tools.h"
