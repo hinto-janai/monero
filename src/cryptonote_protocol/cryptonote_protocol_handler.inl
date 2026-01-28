@@ -45,6 +45,7 @@
 #include "common/power.h"
 #include "cryptonote_protocol/cryptonote_protocol_handler.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
+#include "p2p/p2p_protocol_defs.h"
 #include "profile_tools.h"
 #include "net/network_throttle-detail.hpp"
 #include "common/pruning.h"
@@ -446,6 +447,8 @@ namespace cryptonote
       cnx.height = cntxt.m_remote_blockchain_height;
       cnx.pruning_seed = cntxt.m_pruning_seed;
       cnx.address_type = (uint8_t)cntxt.m_remote_address.get_type_id();
+
+      cnx.power_enabled = cntxt.m_power_enabled;
 
       connections.push_back(cnx);
 
@@ -922,33 +925,43 @@ namespace cryptonote
   template<class t_core>
   int t_cryptonote_protocol_handler<t_core>::handle_notify_power_solution(int command, NOTIFY_POWER_SOLUTION::request& arg, cryptonote_connection_context& context)
   {
-    MLOG_P2P_MESSAGE("Received NOTIFY_POWER_SOLUTION (nonce: " << arg.nonce << ")");
+    nodetool::power_challenge_data c = m_p2p->power_challenge();
+
+    MLOG_P2P_MESSAGE(
+      "Received NOTIFY_POWER_SOLUTION (nonce="
+      << arg.nonce
+      << ", seed="
+      << c.seed
+      << ", seed_top64="
+      << c.seed_top64
+      << ", difficulty="
+      << c.difficulty
+      << ")"
+    );
 
     if (arg.solution.size() != 8)
     {
-      LOG_ERROR_CCONTEXT("Solution wrong size");
+      LOG_PRINT_CCONTEXT_L1("PoWER solution wrong size, dropping connection");
+      drop_connection_with_score(context, tools::power::BAN_SCORE, false);
       return 0;
     }
 
-    std::array<uint16_t, 8> solution {};
-    std::copy(arg.solution.begin(), arg.solution.end(), solution.begin());
-
-    /* TODO: retrieve from `<connection_id, seed>` */
-    uint64_t seed = 0;
-    uint64_t seed_top64 = 0;
+    std::array<uint16_t, 8> s {};
+    std::copy(arg.solution.begin(), arg.solution.end(), s.begin());
 
     if (!tools::power::verify_p2p(
-      seed,
-      seed_top64,
+      c.seed,
+      c.seed_top64,
       arg.nonce,
-      tools::power::DIFFICULTY,
-      solution
+      c.difficulty,
+      s
     )) {
-      LOG_ERROR_CCONTEXT("Invalid solution");
+      LOG_PRINT_CCONTEXT_L1("PoWER verification failed, dropping connection");
+      drop_connection_with_score(context, tools::power::BAN_SCORE, false);
       return 0;
     }
 
-    context.power_enabled = true;
+    context.m_power_enabled = true;
     return 1;
   }
   //------------------------------------------------------------------------------------------------------------------------
@@ -1006,6 +1019,24 @@ namespace cryptonote
 
     for (auto& tx : arg.txs)
     {
+      if (!context.m_power_enabled)
+      {
+        transaction_prefix tx_prefix;
+        if (!parse_and_validate_tx_prefix_from_blob(tx, tx_prefix))
+        {
+          LOG_PRINT_L1("Incoming transactions failed to parse, rejected");
+          drop_connection(context, false, false);
+          return 1;
+        }
+
+        if (tx_prefix.vin.size() >= tools::power::INPUT_THRESHOLD)
+        {
+          LOG_PRINT_L1("Incoming transactions failed PoWER, rejected");
+          drop_connection_with_score(context, tools::power::BAN_SCORE, false);
+          return 1;
+        }
+      }
+
       tx_verification_context tvc{};
       if (!m_core.handle_incoming_tx(tx, tvc, tx_relay, true) && !tvc.m_no_drop_offense)
       {

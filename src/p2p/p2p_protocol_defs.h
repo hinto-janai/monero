@@ -196,12 +196,10 @@ namespace nodetool
     struct request_t
     {
       basic_node_data node_data;
-      power_challenge_data power_data;
       t_playload_type payload_data;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(node_data)
-        KV_SERIALIZE(power_data)
         KV_SERIALIZE(payload_data)
       END_KV_SERIALIZE_MAP()
     };
@@ -210,14 +208,14 @@ namespace nodetool
     struct response_t
     {
       basic_node_data node_data;
-      power_challenge_data power_data;
       t_playload_type payload_data;
+      power_challenge_data power_data;
       std::vector<peerlist_entry> local_peerlist_new;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(node_data)
-        KV_SERIALIZE(power_data)
         KV_SERIALIZE(payload_data)
+        KV_SERIALIZE(power_data)
         KV_SERIALIZE(local_peerlist_new)
       END_KV_SERIALIZE_MAP()
     };

@@ -82,7 +82,7 @@ where:
 
 In the Monero codebase, this is the `create_challenge_p2p` function.
 
-`seed` and `difficulty` are provided by nodes in the initial P2P handshake message.
+`seed` and `difficulty` are provided by nodes in the initial P2P handshake message. Note that `seed` is split into two 64-bit unsigned integers in the Monero codebase.
 
 `nonce` should be adjusted until a valid Equi-X `solution` is produced that passes the difficulty formula with `difficulty`, then a `NOTIFY_POWER_SOLUTION` message should be sent containing the `solution` and `nonce`. This will enable high input transaction relay for that connection.
 

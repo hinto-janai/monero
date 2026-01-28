@@ -57,6 +57,11 @@ namespace tools
   // RPC related code apply to both the RPC and ZMQ-RPC interfaces.
   namespace power
   {
+    // Ban score for peers that either:
+    // - attempt to send high-input transactions without PoWER.
+    // - send an invalid or malformed PoWER solution.
+    inline constexpr size_t BAN_SCORE = 5;
+
     // Input counts greater than this require PoWER.
     inline constexpr size_t INPUT_THRESHOLD = 8;
 
@@ -84,14 +89,14 @@ namespace tools
     // | 250        | 14.855         | 3.573       | 3.226       |
     // | 275        | 17.736         | 4.378       | 3.768       |
     // | 300        | 20.650         | 5.116       | 4.422       |
-    inline constexpr size_t DIFFICULTY = 100;
+    inline constexpr uint32_t DIFFICULTY = 100;
 
     // Max difficulty value.
     //
     // Technically, nodes can be modified to send lower/higher difficulties in P2P.
-    // A vanilla node will adjust accordingly; it can and will and solve a higher difficulty challenge.
+    // A vanilla node will adjust accordingly; it can and will solve a lower/higher difficulty challenge.
     // This is the max valid difficulty requested from a peer before the connection is dropped.
-    inline constexpr size_t MAX_DIFFICULTY = DIFFICULTY * 2;
+    inline constexpr uint32_t MAX_DIFFICULTY = DIFFICULTY * 2;
 
     // Personalization string used in PoWER hashes.
     inline constexpr std::string_view PERSONALIZATION_STRING = "Monero PoWER";
@@ -121,26 +126,6 @@ namespace tools
     {
       std::vector<uint8_t> challenge;
       std::array<uint16_t, 8> solution;
-      uint32_t nonce;
-    };
-
-    struct power_challenge_rpc {
-      // Hash of transaction prefix.
-      crypto::hash tx_prefix_hash;
-      // Block hash within the last HEIGHT_WINDOW blocks.
-      crypto::hash recent_block_hash;
-      // A valid nonce.
-      uint32_t nonce;
-    };
-
-    struct power_challenge_p2p {
-      // Low bits of 128-bit seed.
-      uint64_t seed;
-      // High bits of 128-bit seed.
-      uint64_t seed_top64;
-      // Difficulty parameter from peer.
-      uint32_t difficulty;
-      // A valid nonce.
       uint32_t nonce;
     };
 

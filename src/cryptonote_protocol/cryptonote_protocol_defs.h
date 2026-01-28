@@ -384,7 +384,6 @@ namespace cryptonote
   /************************************************************************/
   struct NOTIFY_POWER_SOLUTION
   {
-    // TODO: merge conflict <https://github.com/seraphis-migration/monero/pull/184>
     const static int ID = BC_COMMANDS_POOL_BASE + 13;
 
     struct request_t

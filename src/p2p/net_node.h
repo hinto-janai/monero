@@ -300,6 +300,8 @@ namespace nodetool
     virtual void remove_used_stripe_peer(const typename t_payload_net_handler::connection_context &context);
     virtual void clear_used_stripe_peers();
 
+    virtual nodetool::power_challenge_data power_challenge();
+
   private:
     const std::vector<std::string> m_seed_nodes_list =
     { "seeds.moneroseeds.se"
@@ -465,6 +467,7 @@ namespace nodetool
     bool m_offline;
     bool m_use_ipv6;
     bool m_require_ipv4;
+    nodetool::power_challenge_data m_power_challenge; // Our challenge for an incoming peer.
     std::atomic<bool> is_closing;
     std::unique_ptr<boost::thread> mPeersLoggerThread;
     //critical_section m_connections_lock;

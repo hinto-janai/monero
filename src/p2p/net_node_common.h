@@ -33,6 +33,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <utility>
 #include <vector>
+#include "common/power.h"
 #include "net/levin_base.h"
 #include "cryptonote_basic/blobdatatype.h"
 #include "cryptonote_protocol/enums.h"
@@ -68,6 +69,7 @@ namespace nodetool
     virtual void add_used_stripe_peer(const t_connection_context &context)=0;
     virtual void remove_used_stripe_peer(const t_connection_context &context)=0;
     virtual void clear_used_stripe_peers()=0;
+    virtual nodetool::power_challenge_data power_challenge()=0;
   };
 
   template<class t_connection_context>
@@ -134,6 +136,10 @@ namespace nodetool
     }
     virtual void clear_used_stripe_peers()
     {
+    }
+    virtual nodetool::power_challenge_data power_challenge()
+    {
+      return nodetool::power_challenge_data { 0, 0, 0 };
     }
   };
 }
