@@ -68,7 +68,8 @@ namespace nodetool
     virtual void add_used_stripe_peer(const t_connection_context &context)=0;
     virtual void remove_used_stripe_peer(const t_connection_context &context)=0;
     virtual void clear_used_stripe_peers()=0;
-    virtual nodetool::power_challenge_data power_challenge()=0;
+    virtual nodetool::power_challenge_data get_power_challenge()=0;
+    virtual void set_power_challenge(const nodetool::power_challenge_data challenge)=0;
   };
 
   template<class t_connection_context>
@@ -136,9 +137,12 @@ namespace nodetool
     virtual void clear_used_stripe_peers()
     {
     }
-    virtual nodetool::power_challenge_data power_challenge()
+    virtual nodetool::power_challenge_data get_power_challenge()
     {
       return nodetool::power_challenge_data { 0, 0, 0 };
+    }
+    virtual void set_power_challenge(const nodetool::power_challenge_data challenge)
+    {
     }
   };
 }

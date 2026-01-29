@@ -209,13 +209,13 @@ namespace nodetool
     {
       basic_node_data node_data;
       t_playload_type payload_data;
-      power_challenge_data power_data;
+      power_challenge_data power_challenge;
       std::vector<peerlist_entry> local_peerlist_new;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(node_data)
         KV_SERIALIZE(payload_data)
-        KV_SERIALIZE(power_data)
+        KV_SERIALIZE(power_challenge)
         KV_SERIALIZE(local_peerlist_new)
       END_KV_SERIALIZE_MAP()
     };

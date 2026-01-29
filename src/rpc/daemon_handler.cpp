@@ -509,7 +509,7 @@ namespace rpc
       return;
     }
 
-    if(!validatePower(tx_blob, recent_block_hash, power_solution, nonce, res.error_details))
+    if (!validatePower(tx_blob, recent_block_hash, power_solution, nonce, res.error_details))
     {
       res.relayed = false;
       res.status = Message::STATUS_OK;

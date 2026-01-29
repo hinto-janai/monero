@@ -300,7 +300,8 @@ namespace nodetool
     virtual void remove_used_stripe_peer(const typename t_payload_net_handler::connection_context &context);
     virtual void clear_used_stripe_peers();
 
-    virtual nodetool::power_challenge_data power_challenge();
+    virtual nodetool::power_challenge_data get_power_challenge();
+    virtual void set_power_challenge(const nodetool::power_challenge_data challenge);
 
   private:
     const std::vector<std::string> m_seed_nodes_list =
@@ -467,7 +468,6 @@ namespace nodetool
     bool m_offline;
     bool m_use_ipv6;
     bool m_require_ipv4;
-    nodetool::power_challenge_data m_power_challenge; // Our challenge for an incoming peer.
     std::atomic<bool> is_closing;
     std::unique_ptr<boost::thread> mPeersLoggerThread;
     //critical_section m_connections_lock;
@@ -515,6 +515,9 @@ namespace nodetool
 
     boost::mutex m_used_stripe_peers_mutex;
     std::array<std::list<epee::net_utils::network_address>, 1 << CRYPTONOTE_PRUNING_LOG_STRIPES> m_used_stripe_peers;
+
+    boost::mutex m_power_challenge_lock;
+    nodetool::power_challenge_data m_power_challenge; // Our challenge for an incoming peer.
 
     boost::uuids::uuid m_network_id;
     cryptonote::network_type m_nettype;

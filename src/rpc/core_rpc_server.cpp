@@ -546,14 +546,16 @@ namespace cryptonote
     const uint64_t height = m_core.get_current_blockchain_height() - 1;
 
     bool hash_is_recent = false;
-    for (uint64_t h = height; h >= height - tools::power::HEIGHT_WINDOW && h < height; --h)
+    for (size_t i = 0; i < tools::power::HEIGHT_WINDOW; ++i)
     {
+      const uint64_t h = height >= i ? height - i : 0;
+
       if (h == 0)
       {
         break;
       }
 
-      crypto::hash id = m_core.get_block_id_by_height(h);
+      const crypto::hash id = m_core.get_block_id_by_height(h);
 
       if (id == crypto::null_hash)
       {

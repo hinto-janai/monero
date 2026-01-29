@@ -925,7 +925,7 @@ namespace cryptonote
   template<class t_core>
   int t_cryptonote_protocol_handler<t_core>::handle_notify_power_solution(int command, NOTIFY_POWER_SOLUTION::request& arg, cryptonote_connection_context& context)
   {
-    nodetool::power_challenge_data c = m_p2p->power_challenge();
+    nodetool::power_challenge_data c = m_p2p->get_power_challenge();
 
     MLOG_P2P_MESSAGE(
       "Received NOTIFY_POWER_SOLUTION (nonce="

@@ -1,6 +1,6 @@
 # PoWER
 
-Proof-of-Work-Enabled Relay (PoWER) is a protocol to mitigate denial-of-service (DoS) attacks against Monero nodes caused by spam transactions with a large number of inputs.
+Proof-of-Work-Enabled Relay (PoWER) is a [client puzzle protocol](https://en.wikipedia.org/wiki/Client_Puzzle_Protocol) meant to mitigate denial-of-service (DoS) attacks against Monero nodes caused by spam transactions. Monero nodes provide challenges that require clients/peers to provide a solution in order to relay high-input transactions.
 
 This document contains instructions on how to follow the protocol.
 
@@ -25,18 +25,18 @@ PoWER adds a computational cost by requiring Proof-of-Work (PoW) to be performed
 | Parameter                | Value          | Description |
 |--------------------------|----------------|-------------|
 | `INPUT_THRESHOLD`        | 8              | PoWER is required for transactions with input counts greater than this. Transaction with input counts less than or equal to this value can skip PoWER.
-| `HEIGHT_WINDOW`          | 2              | Amount of block hashes that are valid as input for RPC PoWER challenge construction
-| `DIFFICULTY`             | 200            | Fixed value used for difficulty calculation
-| `PERSONALIZATION_STRING` | "Monero PoWER" | Personalization string used in PoWER related functions
+| `HEIGHT_WINDOW`          | 2              | Amount of block hashes that are valid as input for RPC PoWER challenge construction.
+| `DIFFICULTY`             | 200            | Fixed value used for difficulty calculation.
+| `PERSONALIZATION_STRING` | "Monero PoWER" | Personalization string used in PoWER related functions.
 
 - Concatenation of bytes is denoted by `||`.
 - All operations converting between integers and bytes are in little endian encoding.
 
 ## Calculating PoWER challenges and solutions
 
-PoWER uses [Equi-X](https://github.com/tevador/equix) as the PoW algorithm.
+[Equi-X](https://github.com/tevador/equix) is the PoW algorithm used for PoWER challenges and solutions.
 
-Equi-X is a CPU-friendly [client-puzzle](https://en.wikipedia.org/wiki/Client_Puzzle_Protocol) that takes in a ["challenge" (bytes)](https://github.com/tevador/equix/blob/c0b0d2bd210b870b3077f487a3705dfa7578208f/include/equix.h#L121) and outputs a [16-byte array "solution"](https://github.com/tevador/equix/blob/c0b0d2bd210b870b3077f487a3705dfa7578208f/include/equix.h#L28-L30).
+Equi-X is a CPU-friendly client-puzzle that takes in a ["challenge" (bytes)](https://github.com/tevador/equix/blob/c0b0d2bd210b870b3077f487a3705dfa7578208f/include/equix.h#L121) and outputs a [16-byte array "solution"](https://github.com/tevador/equix/blob/c0b0d2bd210b870b3077f487a3705dfa7578208f/include/equix.h#L28-L30).
 
 ### Challenge
 
@@ -61,7 +61,7 @@ In the Monero codebase, this is the `create_challenge_rpc` function.
 
 RPC endpoints that relay transactions contain fields where this data must be passed alongside the transaction.
 
-Note that these fields are not needed when any of the following are true:
+Note that these fields are not required when any of the following are true:
 - The transaction has less than or equal to `INPUT_THRESHOLD` inputs.
 - The transaction orignates from a local/trusted source (unrestricted RPC, localhost, etc)
 
@@ -82,7 +82,7 @@ where:
 
 In the Monero codebase, this is the `create_challenge_p2p` function.
 
-`seed` and `difficulty` are provided by nodes in the initial P2P handshake message. Note that `seed` is split into two 64-bit unsigned integers in the Monero codebase.
+`seed` and `difficulty` are provided by nodes in the initial P2P handshake message. Note that in the Monero codebase, `seed` is split into two 64-bit unsigned integers representing the low and high bits.
 
 `nonce` should be adjusted until a valid Equi-X `solution` is produced that passes the difficulty formula with `difficulty`, then a `NOTIFY_POWER_SOLUTION` message should be sent containing the `solution` and `nonce`. This will enable high input transaction relay for that connection.
 

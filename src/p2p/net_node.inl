@@ -1235,21 +1235,21 @@ namespace nodetool
         }
 
         // Solve PoWER challenge and send to peer.
-        if (rsp.power_data.difficulty >= tools::power::MAX_DIFFICULTY)
+        if (rsp.power_challenge.difficulty >= tools::power::MAX_DIFFICULTY)
         {
           LOG_WARNING_CC(
             context,
             "COMMAND_HANDSHAKE invoked but PoWER difficulty from peer is too high: "
-              << rsp.power_data.difficulty
+              << rsp.power_challenge.difficulty
               << ", dropping connection."
           );
           hsh_result = false;
           return;
         }
         tools::power::power_solution s = tools::power::solve_p2p(
-          rsp.power_data.seed,
-          rsp.power_data.seed_top64,
-          rsp.power_data.difficulty
+          rsp.power_challenge.seed,
+          rsp.power_challenge.seed_top64,
+          rsp.power_challenge.difficulty
         );
         epee::levin::message_writer out{4096};
         cryptonote::NOTIFY_POWER_SOLUTION::request_t r = { std::vector(s.solution.begin(), s.solution.end()), s.nonce };
@@ -2746,11 +2746,7 @@ namespace nodetool
         flags_context.support_flags = support_flags;
       });
 
-    m_power_challenge = nodetool::power_challenge_data {
-      crypto::rand<uint64_t>(),
-      crypto::rand<uint64_t>(),
-      tools::power::DIFFICULTY
-    };
+    set_power_challenge({ crypto::rand<uint64_t>(), crypto::rand<uint64_t>(), tools::power::DIFFICULTY });
 
     //fill response
     zone.m_peerlist.get_peerlist_head(rsp.local_peerlist_new, true);
@@ -2758,9 +2754,7 @@ namespace nodetool
       context.sent_addresses.insert(e.adr);
     get_local_node_data(rsp.node_data, zone);
     m_payload_handler.get_payload_sync_data(rsp.payload_data);
-    rsp.power_data.seed = m_power_challenge.seed;
-    rsp.power_data.seed_top64 = m_power_challenge.seed_top64;
-    rsp.power_data.difficulty = m_power_challenge.difficulty;
+    rsp.power_challenge = get_power_challenge();
     LOG_DEBUG_CC(context, "COMMAND_HANDSHAKE");
     return 1;
   }
@@ -3113,9 +3107,17 @@ namespace nodetool
   }
 
   template<class t_payload_net_handler>
-  nodetool::power_challenge_data node_server<t_payload_net_handler>::power_challenge()
+  nodetool::power_challenge_data node_server<t_payload_net_handler>::get_power_challenge()
   {
+    CRITICAL_REGION_LOCAL(m_power_challenge_lock);
     return m_power_challenge;
+  }
+
+  template<class t_payload_net_handler>
+  void node_server<t_payload_net_handler>::set_power_challenge(const nodetool::power_challenge_data challenge)
+  {
+    CRITICAL_REGION_LOCAL(m_power_challenge_lock);
+    m_power_challenge = challenge;
   }
 
   template<class t_payload_net_handler>
