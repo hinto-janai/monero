@@ -66,11 +66,12 @@ namespace tools
       template<std::size_t T>
       bool verify_equix_solution(
         const std::array<uint8_t, T>& challenge,
-        const std::array<uint16_t, 8> solution
+        const solution_array solution
       ) {
         equix_ctx* ctx = equix_alloc(EQUIX_CTX_VERIFY);
 
-        if (ctx == nullptr) {
+        if (ctx == nullptr)
+        {
           return false;
         }
 
@@ -83,24 +84,25 @@ namespace tools
 
         equix_free(ctx);
 
-        return (result == EQUIX_OK);
+        return result == EQUIX_OK;
       }
 
       // Generic Equi-X + difficulty solving function.
       template<std::size_t T>
-      power_solution solve(
+      solution_data solve(
         std::array<uint8_t, T> challenge,
         const uint32_t difficulty,
         const size_t nonce_index
       ) {
         equix_ctx* ctx = equix_alloc(EQUIX_CTX_SOLVE);
 
-        if (ctx == nullptr) {
+        if (ctx == nullptr)
+        {
           throw std::runtime_error("equix_alloc returned nullptr");
         }
 
         equix_solution solutions[EQUIX_MAX_SOLS];
-        std::array<uint16_t, 8> solution;
+        solution_array solution;
 
         for (uint32_t nonce = 0;; ++nonce) {
           const uint32_t n = swap32le(nonce);
@@ -117,9 +119,10 @@ namespace tools
             memcpy(solution.data(), solutions[i].idx, sizeof(solution));
             uint32_t scalar = create_difficulty_scalar(challenge.data(), challenge.size(), solution);
 
-            if (check_difficulty(scalar, difficulty)) {
+            if (check_difficulty(scalar, difficulty))
+            {
               equix_free(ctx);
-              power_solution s;
+              solution_data s;
               s.challenge = std::vector(challenge.begin(), challenge.end());
               s.solution = solution;
               s.nonce = nonce;
@@ -137,10 +140,12 @@ namespace tools
       bool verify(
         const std::array<uint8_t, T> challenge,
         const uint32_t difficulty,
-        const std::array<uint16_t, 8> solution
+        const solution_array solution
       ) {
         if (!verify_equix_solution(challenge, solution))
+        {
           return false;
+        }
 
         const uint32_t scalar = create_difficulty_scalar(challenge.data(), challenge.size(), solution);
         return (check_difficulty(scalar, difficulty));
@@ -150,7 +155,7 @@ namespace tools
     uint32_t create_difficulty_scalar(
       const void* challenge,
       const size_t challenge_size,
-      const std::array<uint16_t, 8> solution
+      const solution_array solution
     ) noexcept {
       assert(challenge != nullptr);
       assert(challenge_size != 0);
@@ -176,12 +181,12 @@ namespace tools
       return product <= std::numeric_limits<uint32_t>::max();
     }
 
-    std::array<uint8_t, CHALLENGE_SIZE_RPC> create_challenge_rpc(
+    challenge_rpc create_challenge_rpc(
       const crypto::hash tx_prefix_hash,
       const crypto::hash recent_block_hash,
       const uint32_t nonce
     ) noexcept {
-      std::array<uint8_t, CHALLENGE_SIZE_RPC> out {};
+      challenge_rpc out {};
 
       memcpy(out.data(), PERSONALIZATION_STRING.data(), PERSONALIZATION_STRING.size());
       memcpy(out.data() + 12, reinterpret_cast<const void*>(&tx_prefix_hash), 32);
@@ -193,13 +198,13 @@ namespace tools
       return out;
     }
 
-    std::array<uint8_t, CHALLENGE_SIZE_P2P> create_challenge_p2p(
+    challenge_p2p create_challenge_p2p(
       const uint64_t seed,
       const uint64_t seed_top64,
       const uint32_t difficulty,
       const uint32_t nonce
     ) noexcept {
-      std::array<uint8_t, CHALLENGE_SIZE_P2P> out {};
+      challenge_p2p out {};
 
       memcpy(out.data(), PERSONALIZATION_STRING.data(), PERSONALIZATION_STRING.size());
 
@@ -217,23 +222,23 @@ namespace tools
       return out;
     }
 
-    power_solution solve_rpc(
+    solution_data solve_rpc(
       const crypto::hash& tx_prefix_hash,
       const crypto::hash& recent_block_hash,
       const uint32_t difficulty
     ) {
-      std::array<uint8_t, CHALLENGE_SIZE_RPC> challenge =
+      challenge_rpc challenge =
         create_challenge_rpc(tx_prefix_hash, recent_block_hash, 0);
 
       return solve(challenge, difficulty, 76);
     }
 
-    power_solution solve_p2p(
+    solution_data solve_p2p(
       uint64_t seed,
       uint64_t seed_top64,
       uint32_t difficulty
     ) {
-      std::array<uint8_t, CHALLENGE_SIZE_P2P> challenge =
+      challenge_p2p challenge =
         create_challenge_p2p(seed, seed_top64, difficulty, 0);
 
       return solve(challenge, difficulty, 28);
@@ -244,9 +249,9 @@ namespace tools
       const crypto::hash& recent_block_hash,
       const uint32_t nonce,
       const uint32_t difficulty,
-      const std::array<uint16_t, 8> solution
+      const solution_array solution
     ) {
-      std::array<uint8_t, CHALLENGE_SIZE_RPC> challenge = create_challenge_rpc(
+      challenge_rpc challenge = create_challenge_rpc(
         tx_prefix_hash,
         recent_block_hash,
         nonce
@@ -260,9 +265,9 @@ namespace tools
       const uint64_t seed_top64,
       const uint32_t difficulty,
       const uint32_t nonce,
-      const std::array<uint16_t, 8> solution
+      const solution_array solution
     ) {
-      std::array<uint8_t, CHALLENGE_SIZE_P2P> challenge = create_challenge_p2p(
+      challenge_p2p challenge = create_challenge_p2p(
         seed,
         seed_top64,
         difficulty,

@@ -116,16 +116,29 @@ namespace tools
       sizeof(uint32_t) +
       sizeof(uint32_t);
 
-    static_assert(PERSONALIZATION_STRING.size() == 12, "Implementation assumes 12 bytes");
-    static_assert(CHALLENGE_SIZE_RPC == 80, "Implementation assumes 80 bytes");
-    static_assert(CHALLENGE_SIZE_P2P == 36, "Implementation assumes 36 bytes");
-    static_assert(sizeof(crypto::hash) == 32, "Implementation assumes 32 bytes");
-    static_assert(sizeof(std::array<uint16_t, 8>) == sizeof(equix_solution), "Implementation assumes 16 bytes");
+    // Challenge byte array for RPC.
+    typedef std::array<uint8_t, CHALLENGE_SIZE_RPC> challenge_rpc;
 
-    struct power_solution
+    // Challenge byte array for P2P.
+    typedef std::array<uint8_t, CHALLENGE_SIZE_P2P> challenge_p2p;
+
+    // Equi-X solution in byte array form.
+    typedef std::array<uint16_t, 8> solution_array;
+
+    static_assert(PERSONALIZATION_STRING.size() == 12, "Implementation assumes 12 bytes");
+    static_assert(sizeof(challenge_rpc) == 80, "Implementation assumes 80 bytes");
+    static_assert(sizeof(challenge_p2p) == 36, "Implementation assumes 36 bytes");
+    static_assert(sizeof(solution_array) == sizeof(equix_solution), "Implementation assumes 16 bytes");
+    static_assert(sizeof(crypto::hash) == 32, "Implementation assumes 32 bytes");
+
+    // PoWER solution with context data.
+    struct solution_data
     {
+      // Challenge bytes.
       std::vector<uint8_t> challenge;
-      std::array<uint16_t, 8> solution;
+      // Equi-X solution bytes.
+      solution_array solution;
+      // Correct nonce required for the solution.
       uint32_t nonce;
     };
 
@@ -139,7 +152,7 @@ namespace tools
     uint32_t create_difficulty_scalar(
       const void* challenge,
       const size_t challenge_size,
-      const std::array<uint16_t, 8> solution
+      const solution_array solution
     ) noexcept ;
 
     /**
@@ -191,7 +204,7 @@ namespace tools
     * @param recent_block_hash  Block hash within the last POWER_HEIGHT_WINDOW blocks.
     * @param difficulty         The difficulty parameter.
     */
-    power_solution solve_rpc(
+    solution_data solve_rpc(
       const crypto::hash& tx_prefix_hash,
       const crypto::hash& recent_block_hash,
       const uint32_t difficulty
@@ -204,7 +217,7 @@ namespace tools
     * @param seed_top64  High bytes of challenge seed.
     * @param difficulty  The difficulty parameter.
     */
-    power_solution solve_p2p(
+    solution_data solve_p2p(
       const uint64_t seed,
       const uint64_t seed_top64,
       const uint32_t difficulty
@@ -227,7 +240,7 @@ namespace tools
       const crypto::hash& recent_block_hash,
       const uint32_t nonce,
       const uint32_t difficulty,
-      const std::array<uint16_t, 8> solution
+      const solution_array solution
     );
 
     /**
@@ -247,7 +260,7 @@ namespace tools
       const uint64_t seed_top64,
       const uint32_t difficulty,
       const uint32_t nonce,
-      const std::array<uint16_t, 8> solution
+      const solution_array solution
     );
 
   } // namespace power

@@ -26,7 +26,7 @@ PoWER adds a computational cost by requiring Proof-of-Work (PoW) to be performed
 |--------------------------|----------------|-------------|
 | `INPUT_THRESHOLD`        | 8              | PoWER is required for transactions with input counts greater than this. Transaction with input counts less than or equal to this value can skip PoWER.
 | `HEIGHT_WINDOW`          | 2              | Amount of block hashes that are valid as input for RPC PoWER challenge construction.
-| `DIFFICULTY`             | 200            | Fixed value used for difficulty calculation.
+| `DIFFICULTY`             | 100            | Fixed value used for difficulty calculation.
 | `PERSONALIZATION_STRING` | "Monero PoWER" | Personalization string used in PoWER related functions.
 
 - Concatenation of bytes is denoted by `||`.

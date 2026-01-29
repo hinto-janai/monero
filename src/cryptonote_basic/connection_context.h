@@ -35,7 +35,6 @@
 #include <algorithm>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/optional/optional_fwd.hpp>
-#include "common/power.h"
 #include "net/net_utils_base.h"
 #include "crypto/hash.h"
 

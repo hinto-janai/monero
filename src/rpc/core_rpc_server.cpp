@@ -536,7 +536,7 @@ namespace cryptonote
       return false;
     }
 
-    std::array<uint16_t, 8> solution;
+    tools::power::solution_array solution;
     if (power_solution.size() != 32 || !string_tools::hex_to_pod(power_solution, solution))
     {
       status = "Failed to decode power_solution";

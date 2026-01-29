@@ -939,14 +939,16 @@ namespace cryptonote
       << ")"
     );
 
-    if (arg.solution.size() != 8)
+    constexpr size_t size = tools::power::solution_array {}.size();
+
+    if (arg.solution.size() != size)
     {
       LOG_PRINT_CCONTEXT_L1("PoWER solution wrong size, dropping connection");
       drop_connection_with_score(context, tools::power::BAN_SCORE, false);
       return 0;
     }
 
-    std::array<uint16_t, 8> s {};
+    tools::power::solution_array s {};
     std::copy(arg.solution.begin(), arg.solution.end(), s.begin());
 
     if (!tools::power::verify_p2p(

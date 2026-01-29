@@ -142,7 +142,7 @@ class DaemonHandler : public RpcHandler
     bool validatePower(
       const cryptonote::blobdata& tx_blob,
       const crypto::hash& power_block_hash,
-      const std::array<uint16_t, 8>& power_solution,
+      const tools::power::solution_array& power_solution,
       uint32_t power_nonce,
       std::string& error_details
     );
@@ -150,7 +150,7 @@ class DaemonHandler : public RpcHandler
     void handleTxBlob(
       std::string&& tx_blob,
       const crypto::hash& recent_block_hash,
-      const std::array<uint16_t, 8>& power_solution,
+      const tools::power::solution_array& power_solution,
       const uint32_t power_nonce,
       bool relay,
       SendRawTx::Response& res

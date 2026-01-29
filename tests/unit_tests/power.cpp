@@ -178,7 +178,7 @@ namespace tools
         const std::string h = epee::string_tools::pod_to_hex(s);
         ASSERT_EQ(h, t.expected_solution);
 
-        std::array<uint16_t, 8> s2;
+        tools::power::solution_array s2;
         memcpy(s2.data(), s.idx, sizeof(s2));
 
         const uint32_t d = create_difficulty_scalar(challenge, size, s2);
@@ -201,7 +201,7 @@ namespace tools
         epee::string_tools::hex_to_pod(t.tx_prefix_hash.data(), tx_prefix_hash);
         epee::string_tools::hex_to_pod(t.recent_block_hash.data(), recent_block_hash);
 
-        const power_solution s = solve_rpc(tx_prefix_hash, recent_block_hash, DIFF);
+        const solution_data s = solve_rpc(tx_prefix_hash, recent_block_hash, DIFF);
 
         ASSERT_EQ(s.nonce, t.expected_nonce);
 
@@ -237,8 +237,7 @@ namespace tools
     {
       for (const auto& t : TEST_DATA_P2P)
       {
-        const power_solution s =
-          solve_p2p(t.seed, t.seed_top64, DIFF);
+        const solution_data s = solve_p2p(t.seed, t.seed_top64, DIFF);
 
         ASSERT_EQ(s.nonce, t.expected_nonce);
 

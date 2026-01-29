@@ -1246,7 +1246,7 @@ namespace nodetool
           hsh_result = false;
           return;
         }
-        tools::power::power_solution s = tools::power::solve_p2p(
+        tools::power::solution_data s = tools::power::solve_p2p(
           rsp.power_challenge.seed,
           rsp.power_challenge.seed_top64,
           rsp.power_challenge.difficulty
