@@ -70,6 +70,8 @@ namespace nodetool
     virtual void clear_used_stripe_peers()=0;
     virtual nodetool::power_challenge_data get_power_challenge()=0;
     virtual void set_power_challenge(const nodetool::power_challenge_data challenge)=0;
+    virtual bool get_power_enabled()=0;
+    virtual void set_power_enabled(bool enabled)=0;
   };
 
   template<class t_connection_context>
@@ -142,6 +144,13 @@ namespace nodetool
       return nodetool::power_challenge_data { 0, 0, 0 };
     }
     virtual void set_power_challenge(const nodetool::power_challenge_data challenge)
+    {
+    }
+    virtual bool get_power_enabled()
+    {
+      return false;
+    }
+    virtual void set_power_enabled(bool enabled)
     {
     }
   };

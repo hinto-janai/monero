@@ -1254,10 +1254,14 @@ namespace nodetool
         epee::levin::message_writer out{4096};
         cryptonote::NOTIFY_POWER_SOLUTION::request_t r = { std::vector(s.solution.begin(), s.solution.end()), s.nonce };
         epee::serialization::store_t_to_binary(r, out.buffer);
-        if (!zone.m_net_server
+        if (zone.m_net_server
           .get_config_object()
           .send(out.finalize_notify(cryptonote::NOTIFY_POWER_SOLUTION::ID), context.m_connection_id)
         ) {
+          // The peer we are handshaking to does not
+          // need to do PoWER, enable it for them.
+          set_power_enabled(true);
+        } else {
           LOG_WARNING_CC(context, "COMMAND_HANDSHAKE invoked but NOTIFY_POWER_SOLUTION failed, continuing with degraded tx relay.");
         }
 
@@ -3118,6 +3122,18 @@ namespace nodetool
   {
     CRITICAL_REGION_LOCAL(m_power_challenge_lock);
     m_power_challenge = challenge;
+  }
+
+  template<class t_payload_net_handler>
+  bool node_server<t_payload_net_handler>::get_power_enabled()
+  {
+    return m_power_enabled;
+  }
+
+  template<class t_payload_net_handler>
+  void node_server<t_payload_net_handler>::set_power_enabled(bool enabled)
+  {
+    m_power_enabled = enabled;
   }
 
   template<class t_payload_net_handler>

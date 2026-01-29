@@ -161,7 +161,7 @@ namespace tools
     *
     * @return PoWER RPC challenge as bytes.
     */
-    std::array<std::uint8_t, CHALLENGE_SIZE_RPC> create_challenge_rpc(
+    std::array<uint8_t, CHALLENGE_SIZE_RPC> create_challenge_rpc(
       const crypto::hash tx_prefix_hash,
       const crypto::hash recent_block_hash,
       const uint32_t nonce
@@ -177,7 +177,7 @@ namespace tools
     *
     * @return PoWER P2P challenge as bytes.
     */
-    std::array<std::uint8_t, CHALLENGE_SIZE_P2P> create_challenge_p2p(
+    std::array<uint8_t, CHALLENGE_SIZE_P2P> create_challenge_p2p(
       const uint64_t seed,
       const uint64_t seed_top64,
       const uint32_t difficulty,

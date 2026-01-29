@@ -448,7 +448,7 @@ namespace cryptonote
       cnx.pruning_seed = cntxt.m_pruning_seed;
       cnx.address_type = (uint8_t)cntxt.m_remote_address.get_type_id();
 
-      cnx.power_enabled = cntxt.m_power_enabled;
+      cnx.power_enabled = m_p2p->get_power_enabled();
 
       connections.push_back(cnx);
 
@@ -961,7 +961,7 @@ namespace cryptonote
       return 0;
     }
 
-    context.m_power_enabled = true;
+    m_p2p->set_power_enabled(true);
     return 1;
   }
   //------------------------------------------------------------------------------------------------------------------------
@@ -1017,9 +1017,11 @@ namespace cryptonote
     else
       stem_txs.reserve(arg.txs.size());
 
+    bool power_enabled = m_p2p->get_power_enabled();
+
     for (auto& tx : arg.txs)
     {
-      if (!context.m_power_enabled)
+      if (!power_enabled)
       {
         transaction_prefix tx_prefix;
         if (!parse_and_validate_tx_prefix_from_blob(tx, tx_prefix))

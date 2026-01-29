@@ -1,4 +1,4 @@
-// PoWER uses Equi-X by tevador here:
+// PoWER uses Equi-X:
 // <https://github.com/tevador/equix/>.
 //
 // Equi-X is:
@@ -65,7 +65,7 @@ namespace tools
     namespace {
       template<std::size_t T>
       bool verify_equix_solution(
-        const std::array<std::uint8_t, T>& challenge,
+        const std::array<uint8_t, T>& challenge,
         const std::array<uint16_t, 8> solution
       ) {
         equix_ctx* ctx = equix_alloc(EQUIX_CTX_VERIFY);
@@ -89,7 +89,7 @@ namespace tools
       // Generic Equi-X + difficulty solving function.
       template<std::size_t T>
       power_solution solve(
-        std::array<std::uint8_t, T> challenge,
+        std::array<uint8_t, T> challenge,
         const uint32_t difficulty,
         const size_t nonce_index
       ) {
@@ -172,16 +172,16 @@ namespace tools
 
     constexpr bool check_difficulty(uint32_t scalar, uint32_t difficulty) noexcept
     {
-      const std::uint64_t product = uint64_t(scalar) * uint64_t(difficulty);
-      return product <= std::numeric_limits<std::uint32_t>::max();
+      const uint64_t product = uint64_t(scalar) * uint64_t(difficulty);
+      return product <= std::numeric_limits<uint32_t>::max();
     }
 
-    std::array<std::uint8_t, CHALLENGE_SIZE_RPC> create_challenge_rpc(
+    std::array<uint8_t, CHALLENGE_SIZE_RPC> create_challenge_rpc(
       const crypto::hash tx_prefix_hash,
       const crypto::hash recent_block_hash,
       const uint32_t nonce
     ) noexcept {
-      std::array<std::uint8_t, CHALLENGE_SIZE_RPC> out {};
+      std::array<uint8_t, CHALLENGE_SIZE_RPC> out {};
 
       memcpy(out.data(), PERSONALIZATION_STRING.data(), PERSONALIZATION_STRING.size());
       memcpy(out.data() + 12, reinterpret_cast<const void*>(&tx_prefix_hash), 32);
@@ -193,13 +193,13 @@ namespace tools
       return out;
     }
 
-    std::array<std::uint8_t, CHALLENGE_SIZE_P2P> create_challenge_p2p(
+    std::array<uint8_t, CHALLENGE_SIZE_P2P> create_challenge_p2p(
       const uint64_t seed,
       const uint64_t seed_top64,
       const uint32_t difficulty,
       const uint32_t nonce
     ) noexcept {
-      std::array<std::uint8_t, CHALLENGE_SIZE_P2P> out {};
+      std::array<uint8_t, CHALLENGE_SIZE_P2P> out {};
 
       memcpy(out.data(), PERSONALIZATION_STRING.data(), PERSONALIZATION_STRING.size());
 
@@ -222,7 +222,7 @@ namespace tools
       const crypto::hash& recent_block_hash,
       const uint32_t difficulty
     ) {
-      std::array<std::uint8_t, CHALLENGE_SIZE_RPC> challenge =
+      std::array<uint8_t, CHALLENGE_SIZE_RPC> challenge =
         create_challenge_rpc(tx_prefix_hash, recent_block_hash, 0);
 
       return solve(challenge, difficulty, 76);
@@ -233,7 +233,7 @@ namespace tools
       uint64_t seed_top64,
       uint32_t difficulty
     ) {
-      std::array<std::uint8_t, CHALLENGE_SIZE_P2P> challenge =
+      std::array<uint8_t, CHALLENGE_SIZE_P2P> challenge =
         create_challenge_p2p(seed, seed_top64, difficulty, 0);
 
       return solve(challenge, difficulty, 28);
@@ -246,7 +246,7 @@ namespace tools
       const uint32_t difficulty,
       const std::array<uint16_t, 8> solution
     ) {
-      std::array<std::uint8_t, CHALLENGE_SIZE_RPC> challenge = create_challenge_rpc(
+      std::array<uint8_t, CHALLENGE_SIZE_RPC> challenge = create_challenge_rpc(
         tx_prefix_hash,
         recent_block_hash,
         nonce
@@ -262,7 +262,7 @@ namespace tools
       const uint32_t nonce,
       const std::array<uint16_t, 8> solution
     ) {
-      std::array<std::uint8_t, CHALLENGE_SIZE_P2P> challenge = create_challenge_p2p(
+      std::array<uint8_t, CHALLENGE_SIZE_P2P> challenge = create_challenge_p2p(
         seed,
         seed_top64,
         difficulty,

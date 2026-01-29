@@ -302,6 +302,8 @@ namespace nodetool
 
     virtual nodetool::power_challenge_data get_power_challenge();
     virtual void set_power_challenge(const nodetool::power_challenge_data challenge);
+    virtual bool get_power_enabled();
+    virtual void set_power_enabled(bool enabled);
 
   private:
     const std::vector<std::string> m_seed_nodes_list =
@@ -518,6 +520,7 @@ namespace nodetool
 
     boost::mutex m_power_challenge_lock;
     nodetool::power_challenge_data m_power_challenge; // Our challenge for an incoming peer.
+    bool m_power_enabled;
 
     boost::uuids::uuid m_network_id;
     cryptonote::network_type m_nettype;
