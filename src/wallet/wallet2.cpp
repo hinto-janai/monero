@@ -7774,7 +7774,7 @@ void wallet2::commit_tx(pending_tx& ptx)
   req.do_sanity_checks = true;
 
   // Find PoWER solution if necessary.
-  if ((!tools::is_local_address(m_daemon_address)) && (ptx.tx.vin.size() > tools::power::INPUT_THRESHOLD))
+  if (!tools::is_local_address(m_daemon_address) && ptx.tx.vin.size() > tools::power::INPUT_THRESHOLD)
   {
     MDEBUG("Finding PoWER solution...");
 
@@ -7787,7 +7787,7 @@ void wallet2::commit_tx(pending_tx& ptx)
     const crypto::hash power_block_hash = m_blockchain[m_blockchain.size() - 1];
     const crypto::hash tx_prefix_hash = cryptonote::get_transaction_prefix_hash(ptx.tx);
 
-    tools::power::power_solution s = tools::power::solve_rpc(
+    tools::power::solution_data s = tools::power::solve_rpc(
       tx_prefix_hash,
       power_block_hash,
       tools::power::DIFFICULTY
